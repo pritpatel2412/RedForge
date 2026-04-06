@@ -13,7 +13,7 @@ export async function seedAdminAccount() {
     const [existing] = await db
       .select({ id: usersTable.id })
       .from(usersTable)
-      .where(eq(usersTable.email, ADMIN_EMAIL))
+      .where((eq(usersTable.email, ADMIN_EMAIL) as any))
       .limit(1);
 
     if (existing) {

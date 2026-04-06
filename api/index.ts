@@ -1,5 +1,5 @@
-import { seedAdminAccount } from "../artifacts/api-server/src/lib/seed.js";
-import app from "../artifacts/api-server/src/app.js";
+import { seedAdminAccount } from "../artifacts/api-server/src/lib/seed";
+import app from "../artifacts/api-server/src/app";
 
 // Initialize the database seed on first run
 let seeded = false;

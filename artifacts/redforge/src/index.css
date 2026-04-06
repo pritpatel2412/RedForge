@@ -1,0 +1,466 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=JetBrains+Mono:wght@400;500&display=swap');
+@import "tailwindcss";
+@import "tw-animate-css";
+@plugin "@tailwindcss/typography";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --font-sans: 'Inter', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  --color-background: oklch(5% 0 0);
+  --color-foreground: oklch(98% 0 0);
+  
+  --color-card: oklch(8% 0 0);
+  --color-card-foreground: oklch(98% 0 0);
+  --color-card-border: oklch(14% 0 0);
+
+  --color-popover: oklch(8% 0 0);
+  --color-popover-foreground: oklch(98% 0 0);
+  --color-popover-border: oklch(14% 0 0);
+
+  --color-primary: hsl(348, 83%, 50%);
+  --color-primary-foreground: hsl(0, 0%, 100%);
+  
+  --color-secondary: oklch(12% 0 0);
+  --color-secondary-foreground: oklch(98% 0 0);
+
+  --color-muted: oklch(10% 0 0);
+  --color-muted-foreground: oklch(65% 0 0);
+
+  --color-accent: hsl(348, 83%, 50%);
+  --color-accent-foreground: hsl(0, 0%, 100%);
+
+  --color-destructive: hsl(0, 84%, 60%);
+  --color-destructive-foreground: hsl(0, 0%, 98%);
+
+  --color-border: oklch(14% 0 0);
+  --color-input: oklch(12% 0 0);
+  --color-ring: hsl(348, 83%, 50%);
+
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 20px;
+}
+
+:root {
+  color-scheme: dark;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  
+  html {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply tracking-tight font-semibold;
+  }
+
+  ::selection {
+    background: hsl(348, 83%, 50%, 0.3);
+    color: white;
+  }
+}
+
+/* Shimmer skeleton */
+@utility skeleton {
+  background: linear-gradient(
+    90deg,
+    oklch(10% 0 0) 25%,
+    oklch(13% 0 0) 50%,
+    oklch(10% 0 0) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes skeleton-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Scrollbar */
+@utility scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  &::-webkit-scrollbar { display: none; }
+}
+
+@utility scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: oklch(18% 0 0) transparent;
+  &::-webkit-scrollbar { width: 4px; height: 4px; }
+  &::-webkit-scrollbar-track { background: transparent; }
+  &::-webkit-scrollbar-thumb { background: oklch(18% 0 0); border-radius: 9999px; }
+}
+
+/* Dot grid background pattern */
+@utility bg-dot-grid {
+  background-image: radial-gradient(circle, oklch(20% 0 0) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+/* Fine line grid pattern */
+@utility bg-grid {
+  background-image:
+    linear-gradient(oklch(14% 0 0) 1px, transparent 1px),
+    linear-gradient(90deg, oklch(14% 0 0) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+/* Glow utilities */
+@utility glow-red {
+  box-shadow: 0 0 20px hsl(348 83% 50% / 0.3), 0 0 60px hsl(348 83% 50% / 0.1);
+}
+
+@utility glow-red-sm {
+  box-shadow: 0 0 12px hsl(348 83% 50% / 0.25);
+}
+
+@utility text-glow-red {
+  text-shadow: 0 0 20px hsl(348 83% 50% / 0.5);
+}
+
+/* Glassmorphism */
+@utility glass {
+  background: oklch(8% 0 0 / 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* Gradient text */
+@utility gradient-text {
+  background: linear-gradient(135deg, #fff 0%, oklch(75% 0 0) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+@utility gradient-text-red {
+  background: linear-gradient(135deg, hsl(348, 83%, 65%) 0%, hsl(20, 100%, 60%) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* CMDK Command Palette */
+[cmdk-root] {
+  @apply bg-card border border-border shadow-2xl shadow-black overflow-hidden flex flex-col w-full max-w-xl mx-auto rounded-xl;
+  animation: cmdk-fade-in 0.15s ease-out;
+}
+
+[cmdk-input] {
+  @apply w-full bg-transparent border-b border-border p-4 text-foreground font-sans outline-none placeholder:text-muted-foreground text-sm;
+}
+
+[cmdk-list] {
+  @apply max-h-[360px] overflow-y-auto p-2;
+  scrollbar-width: none;
+}
+[cmdk-list]::-webkit-scrollbar { display: none; }
+
+[cmdk-empty] {
+  @apply py-6 text-center text-sm text-muted-foreground;
+}
+
+[cmdk-group-heading] {
+  @apply px-3 py-2 text-[10px] font-semibold text-muted-foreground uppercase tracking-widest;
+}
+
+[cmdk-item] {
+  @apply px-3 py-2.5 rounded-lg cursor-pointer flex items-center gap-3 text-sm text-muted-foreground transition-all select-none outline-none;
+}
+
+[cmdk-item][data-selected="true"] {
+  @apply bg-muted text-foreground;
+}
+
+@keyframes cmdk-fade-in {
+  from { opacity: 0; transform: scale(0.96) translateY(-4px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* Live pulse blue */
+.live-pulse {
+  box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7);
+  animation: pulse-blue 2s infinite;
+}
+
+@keyframes pulse-blue {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7); }
+  70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(59, 130, 246, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+}
+
+/* Red pulse for critical */
+.pulse-red {
+  animation: pulse-red 2s infinite;
+}
+
+@keyframes pulse-red {
+  0%, 100% { box-shadow: 0 0 0 0 hsl(348 83% 50% / 0.5); }
+  50% { box-shadow: 0 0 0 8px hsl(348 83% 50% / 0); }
+}
+
+/* Shimmer animation */
+@keyframes shimmer {
+  from { background-position: -200% center; }
+  to { background-position: 200% center; }
+}
+
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    oklch(25% 0 0 / 0.5) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+}
+
+/* Scan line animation for terminals */
+@keyframes scan-line {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100vh); }
+}
+
+/* Floating animation */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-12px); }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+/* Gradient orb blobs */
+.orb {
+  border-radius: 9999px;
+  filter: blur(80px);
+  opacity: 0.15;
+  pointer-events: none;
+}
+
+/* Premium border gradient */
+@utility border-gradient {
+  border: 1px solid transparent;
+  background: linear-gradient(oklch(8% 0 0), oklch(8% 0 0)) padding-box,
+              linear-gradient(135deg, hsl(348 83% 50% / 0.4), transparent 50%, oklch(20% 0 0)) border-box;
+}
+
+/* Noise texture overlay */
+@utility noise {
+  position: relative;
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    opacity: 0.4;
+    pointer-events: none;
+    border-radius: inherit;
+  }
+}
+
+/* Neon text for terminal */
+@utility text-neon-green {
+  color: #4ade80;
+  text-shadow: 0 0 10px #4ade80;
+}
+
+/* Typing cursor */
+@keyframes cursor-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.cursor-blink {
+  animation: cursor-blink 1s step-end infinite;
+}
+
+/* Fade slide in */
+@keyframes fade-slide-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-slide-up {
+  animation: fade-slide-up 0.5s ease-out forwards;
+}
+
+/* Stagger children */
+.stagger > *:nth-child(1) { animation-delay: 0ms; }
+.stagger > *:nth-child(2) { animation-delay: 80ms; }
+.stagger > *:nth-child(3) { animation-delay: 160ms; }
+.stagger > *:nth-child(4) { animation-delay: 240ms; }
+.stagger > *:nth-child(5) { animation-delay: 320ms; }
+
+/* ─── React Flow — Dark Theme Override ───────────────────────────────────── */
+
+/* Canvas root */
+.react-flow {
+  background: oklch(5% 0 0);
+}
+
+/* Background dots/lines rendered by <Background> */
+.react-flow__background {
+  background-color: oklch(5% 0 0) !important;
+}
+
+/* Pane (canvas surface) */
+.react-flow__pane {
+  cursor: grab;
+}
+.react-flow__pane:active {
+  cursor: grabbing;
+}
+
+/* Nodes — strip React Flow's default white card styles */
+.react-flow__node {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  font-family: inherit !important;
+  color: inherit !important;
+}
+
+/* Selected node ring: violet glow instead of blue */
+.react-flow__node.selected > * {
+  outline: 2px solid rgba(139, 92, 246, 0.7) !important;
+  outline-offset: 2px;
+  border-radius: 16px !important;
+}
+
+/* Edges */
+.react-flow__edge-path {
+  stroke: #7c3aed;
+}
+
+/* Edge label text */
+.react-flow__edge-text {
+  fill: #c4b5fd !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  font-family: inherit !important;
+}
+
+/* Edge label background box */
+.react-flow__edge-textbg {
+  fill: oklch(8% 0 0) !important;
+  rx: 4;
+}
+
+/* Controls panel */
+.react-flow__controls {
+  box-shadow: none !important;
+  border: 1px solid oklch(14% 0 0) !important;
+  border-radius: 12px !important;
+  overflow: hidden;
+  background: transparent !important;
+}
+
+.react-flow__controls-button {
+  background: oklch(8% 0 0) !important;
+  border: none !important;
+  border-bottom: 1px solid oklch(14% 0 0) !important;
+  color: oklch(60% 0 0) !important;
+  fill: oklch(60% 0 0) !important;
+  width: 28px !important;
+  height: 28px !important;
+  padding: 5px !important;
+  transition: background 0.15s, color 0.15s;
+}
+
+.react-flow__controls-button:last-child {
+  border-bottom: none !important;
+}
+
+.react-flow__controls-button:hover {
+  background: oklch(12% 0 0) !important;
+  color: oklch(98% 0 0) !important;
+  fill: oklch(98% 0 0) !important;
+}
+
+.react-flow__controls-button svg {
+  fill: currentColor !important;
+  width: 12px !important;
+  height: 12px !important;
+}
+
+/* Minimap */
+.react-flow__minimap {
+  background: oklch(8% 0 0) !important;
+  border: 1px solid oklch(14% 0 0) !important;
+  border-radius: 12px !important;
+  overflow: hidden;
+  box-shadow: none !important;
+}
+
+.react-flow__minimap svg {
+  border-radius: 10px;
+}
+
+.react-flow__minimap-mask {
+  fill: oklch(4% 0 0 / 0.8) !important;
+  stroke: oklch(30% 0 0) !important;
+  stroke-width: 3 !important;
+}
+
+.react-flow__minimap-node {
+  rx: 4;
+}
+
+/* Selection marquee */
+.react-flow__selection {
+  background: rgba(139, 92, 246, 0.06) !important;
+  border: 1px dashed rgba(139, 92, 246, 0.4) !important;
+}
+
+/* Connection line while dragging */
+.react-flow__connection-path {
+  stroke: rgba(139, 92, 246, 0.6) !important;
+  stroke-width: 2 !important;
+  stroke-dasharray: 5 4 !important;
+}
+
+/* Attribution badge */
+.react-flow__attribution {
+  background: oklch(8% 0 0 / 0.6) !important;
+  border-radius: 6px;
+  padding: 2px 6px !important;
+  backdrop-filter: blur(4px);
+}
+
+.react-flow__attribution a {
+  color: oklch(35% 0 0) !important;
+  text-decoration: none;
+  font-size: 10px;
+}
+
+/* Handle connectors (hidden since we don't use interactive connections) */
+.react-flow__handle {
+  width: 8px !important;
+  height: 8px !important;
+  background: oklch(30% 0 0) !important;
+  border: 1px solid oklch(20% 0 0) !important;
+}
+
+.react-flow__handle:hover {
+  background: rgba(139, 92, 246, 0.7) !important;
+}

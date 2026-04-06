@@ -1,0 +1,18 @@
+packages:
+  "react-hot-toast": "Toast notifications for action feedback"
+  "cmdk": "Command palette for quick navigation"
+  "framer-motion": "Smooth page transitions and micro-interactions"
+  "lucide-react": "Beautiful consistent icon set"
+  "date-fns": "Date formatting for logs and findings"
+  "clsx": "Class merging utility for Tailwind"
+  "tailwind-merge": "Class merging utility for Tailwind"
+
+images:
+  - path: "artifacts/redforge/public/images/hero-bg.png"
+    description: "Deep dark cybersecurity abstract background, red wireframe grid, glowing red dots, cinematic lighting, sleek modern terminal aesthetic"
+    aspect_ratio: "16:9"
+
+notes:
+  - Assumes EventSource for /api/scans/{id}/logs streams plain text data
+  - Assumes customFetch in generated client handles /api prefix automatically
+  - The App uses dark mode exclusively

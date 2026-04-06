@@ -1,0 +1,118 @@
+# ═══════════════════════════════════════════════════
+#  RedForge — .gitignore
+#  Monorepo: pnpm workspaces · TypeScript · Vite · Express
+# ═══════════════════════════════════════════════════
+
+# ── Secrets & Environment ──────────────────────────
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.cert
+*.p12
+secrets/
+
+# ── Dependencies ───────────────────────────────────
+node_modules/
+.pnpm-store/
+.yarn/
+bower_components/
+
+# ── Build Outputs ──────────────────────────────────
+dist/
+build/
+out/
+out-tsc/
+.next/
+.nuxt/
+.svelte-kit/
+*.tsbuildinfo
+
+# ── TypeScript ─────────────────────────────────────
+*.js.map
+*.d.ts.map
+
+# ── Logs ───────────────────────────────────────────
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ── Testing & Coverage ────────────────────────────
+coverage/
+.nyc_output/
+*.lcov
+test-results/
+playwright-report/
+.playwright/
+
+# ── Cache ─────────────────────────────────────────
+.cache/
+.parcel-cache/
+.eslintcache
+.stylelintcache
+.tsbuildinfo
+*.tsbuildinfo
+.turbo/
+.rollup.cache/
+
+# ── Vite ──────────────────────────────────────────
+artifacts/redforge/dist/
+artifacts/redforge/.vite/
+
+# ── IDE & Editors ─────────────────────────────────
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.idea/
+*.sublime-project
+*.sublime-workspace
+*.swp
+*.swo
+*~
+.project
+.classpath
+
+# ── OS Files ──────────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# ── Replit ────────────────────────────────────────
+.replit
+.replitignore
+.cache/
+.local/
+.upm/
+
+# ── Antigravity / AI Tools ────────────────────────
+.agents/
+.gemini/
+
+# ── Misc Project Files ────────────────────────────
+attached_assets/
+mockup-sandbox/
+skills-lock.json
+replit*.md
+"replit (1).md"
+
+# ── Docker ────────────────────────────────────────
+.dockerignore
+docker-compose.override.yml
+
+# ── Temporary ─────────────────────────────────────
+tmp/
+temp/
+*.tmp
+*.temp

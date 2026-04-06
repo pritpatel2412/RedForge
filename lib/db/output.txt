@@ -1,0 +1,3 @@
+Reading config file 'C:\Users\Dell\OneDrive\Desktop\RedForge\lib\db\drizzle.config.ts'
+Error  No schema files found for path config ['C:\Users\Dell\OneDrive\Desktop\RedForge\lib\db\src\schema\index.ts']
+Error  If path represents a file - please make sure to use .ts or other extension in the path

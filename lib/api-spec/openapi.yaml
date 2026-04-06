@@ -1,0 +1,1276 @@
+openapi: 3.1.0
+info:
+  title: Api
+  version: 0.1.0
+  description: RedForge API specification
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: auth
+    description: Authentication operations
+  - name: workspaces
+    description: Workspace operations
+  - name: projects
+    description: Project operations
+  - name: scans
+    description: Scan operations
+  - name: findings
+    description: Finding operations
+  - name: keys
+    description: API key operations
+  - name: billing
+    description: Billing operations
+  - name: users
+    description: User operations
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  /auth/me:
+    get:
+      operationId: getMe
+      tags: [auth]
+      summary: Get current user
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserWithWorkspace"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: Login with email and password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserWithWorkspace"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      summary: Logout
+      responses:
+        "200":
+          description: Logout successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /auth/register:
+    post:
+      operationId: register
+      tags: [auth]
+      summary: Register a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRequest"
+      responses:
+        "201":
+          description: Registration successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserWithWorkspace"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /projects:
+    get:
+      operationId: listProjects
+      tags: [projects]
+      summary: List projects
+      responses:
+        "200":
+          description: List of projects
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ProjectWithStats"
+    post:
+      operationId: createProject
+      tags: [projects]
+      summary: Create a new project
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateProjectRequest"
+      responses:
+        "201":
+          description: Project created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Project"
+
+  /projects/{id}:
+    get:
+      operationId: getProject
+      tags: [projects]
+      summary: Get a project
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Project
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectDetail"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    put:
+      operationId: updateProject
+      tags: [projects]
+      summary: Update a project
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateProjectRequest"
+      responses:
+        "200":
+          description: Project updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Project"
+    delete:
+      operationId: deleteProject
+      tags: [projects]
+      summary: Delete a project
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /projects/{id}/scan:
+    post:
+      operationId: triggerScan
+      tags: [projects]
+      summary: Trigger a scan for a project
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "201":
+          description: Scan started
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Scan"
+
+  /scans:
+    get:
+      operationId: listScans
+      tags: [scans]
+      summary: List all scans
+      responses:
+        "200":
+          description: List of scans
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ScanWithProject"
+
+  /scans/{id}:
+    get:
+      operationId: getScan
+      tags: [scans]
+      summary: Get a scan
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Scan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScanDetail"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /scans/{id}/logs:
+    get:
+      operationId: getScanLogs
+      tags: [scans]
+      summary: Get scan logs (SSE stream)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: SSE stream of scan logs
+          content:
+            text/event-stream:
+              schema:
+                type: string
+
+  /findings:
+    get:
+      operationId: listFindings
+      tags: [findings]
+      summary: List findings
+      parameters:
+        - name: severity
+          in: query
+          schema:
+            type: string
+            enum: [CRITICAL, HIGH, MEDIUM, LOW, INFO]
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [OPEN, IN_PROGRESS, FIXED, WONT_FIX, FALSE_POSITIVE]
+        - name: projectId
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of findings
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/FindingWithProject"
+
+  /findings/{id}:
+    get:
+      operationId: getFinding
+      tags: [findings]
+      summary: Get a finding
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Finding
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Finding"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    patch:
+      operationId: updateFinding
+      tags: [findings]
+      summary: Update finding status
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateFindingRequest"
+      responses:
+        "200":
+          description: Finding updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Finding"
+
+  /findings/{id}/generate-fix:
+    post:
+      operationId: generateFix
+      tags: [findings]
+      summary: Generate AI fix for a finding
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Fix generated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Finding"
+
+  /keys:
+    get:
+      operationId: listApiKeys
+      tags: [keys]
+      summary: List API keys
+      responses:
+        "200":
+          description: List of API keys
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ApiKey"
+    post:
+      operationId: createApiKey
+      tags: [keys]
+      summary: Create an API key
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateApiKeyRequest"
+      responses:
+        "201":
+          description: API key created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiKeyWithSecret"
+
+  /keys/{id}:
+    delete:
+      operationId: deleteApiKey
+      tags: [keys]
+      summary: Delete an API key
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /billing/create-checkout:
+    post:
+      operationId: createCheckout
+      tags: [billing]
+      summary: Create a Stripe checkout session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCheckoutRequest"
+      responses:
+        "200":
+          description: Checkout session created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CheckoutResponse"
+
+  /billing/portal:
+    post:
+      operationId: createBillingPortal
+      tags: [billing]
+      summary: Create a Stripe billing portal session
+      responses:
+        "200":
+          description: Portal session created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CheckoutResponse"
+
+  /workspace/settings:
+    get:
+      operationId: getWorkspaceSettings
+      tags: [workspaces]
+      summary: Get workspace settings
+      responses:
+        "200":
+          description: Workspace settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkspaceSettings"
+    patch:
+      operationId: updateWorkspaceSettings
+      tags: [workspaces]
+      summary: Update workspace settings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateWorkspaceRequest"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkspaceSettings"
+
+  /dashboard/stats:
+    get:
+      operationId: getDashboardStats
+      tags: [workspaces]
+      summary: Get dashboard statistics
+      responses:
+        "200":
+          description: Dashboard stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardStats"
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+      required:
+        - error
+
+    MessageResponse:
+      type: object
+      properties:
+        message:
+          type: string
+      required:
+        - message
+
+    LoginRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+      required:
+        - email
+        - password
+
+    RegisterRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+        name:
+          type: string
+        workspaceName:
+          type: string
+      required:
+        - email
+        - password
+        - name
+
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+        name:
+          type: string
+        avatarUrl:
+          type: string
+          nullable: true
+        role:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - email
+        - name
+        - role
+        - createdAt
+
+    Workspace:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        slug:
+          type: string
+        plan:
+          type: string
+        slackWebhookUrl:
+          type: string
+          nullable: true
+        stripeCustomerId:
+          type: string
+          nullable: true
+        stripeSubscriptionId:
+          type: string
+          nullable: true
+        trialEndsAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - slug
+        - plan
+        - createdAt
+
+    UserWithWorkspace:
+      type: object
+      properties:
+        user:
+          $ref: "#/components/schemas/User"
+        workspace:
+          $ref: "#/components/schemas/Workspace"
+      required:
+        - user
+        - workspace
+
+    WorkspaceSettings:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        slug:
+          type: string
+        plan:
+          type: string
+        slackWebhookUrl:
+          type: string
+          nullable: true
+        stripeCustomerId:
+          type: string
+          nullable: true
+        stripeSubscriptionId:
+          type: string
+          nullable: true
+        trialEndsAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - slug
+        - plan
+        - createdAt
+
+    UpdateWorkspaceRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        slackWebhookUrl:
+          type: string
+          nullable: true
+
+    Project:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        targetUrl:
+          type: string
+        targetType:
+          type: string
+        status:
+          type: string
+        workspaceId:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - targetUrl
+        - targetType
+        - status
+        - workspaceId
+        - createdAt
+        - updatedAt
+
+    ProjectWithStats:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        targetUrl:
+          type: string
+        targetType:
+          type: string
+        status:
+          type: string
+        workspaceId:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        lastScanAt:
+          type: string
+          format: date-time
+          nullable: true
+        scanCount:
+          type: integer
+        findingCount:
+          type: integer
+        criticalCount:
+          type: integer
+      required:
+        - id
+        - name
+        - targetUrl
+        - targetType
+        - status
+        - workspaceId
+        - createdAt
+        - updatedAt
+        - scanCount
+        - findingCount
+        - criticalCount
+
+    ProjectDetail:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        targetUrl:
+          type: string
+        targetType:
+          type: string
+        status:
+          type: string
+        workspaceId:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        scans:
+          type: array
+          items:
+            $ref: "#/components/schemas/ScanSummary"
+        findings:
+          type: array
+          items:
+            $ref: "#/components/schemas/FindingWithProject"
+      required:
+        - id
+        - name
+        - targetUrl
+        - targetType
+        - status
+        - workspaceId
+        - createdAt
+        - updatedAt
+        - scans
+        - findings
+
+    CreateProjectRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        targetUrl:
+          type: string
+        targetType:
+          type: string
+          enum: [WEB_APP, API, MOBILE_API, GRAPHQL]
+      required:
+        - name
+        - targetUrl
+        - targetType
+
+    UpdateProjectRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        targetUrl:
+          type: string
+        status:
+          type: string
+
+    Scan:
+      type: object
+      properties:
+        id:
+          type: string
+        projectId:
+          type: string
+        status:
+          type: string
+          enum: [PENDING, RUNNING, COMPLETED, FAILED]
+        startedAt:
+          type: string
+          format: date-time
+          nullable: true
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+        findingsCount:
+          type: integer
+        criticalCount:
+          type: integer
+        highCount:
+          type: integer
+        mediumCount:
+          type: integer
+        lowCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - projectId
+        - status
+        - findingsCount
+        - criticalCount
+        - highCount
+        - mediumCount
+        - lowCount
+        - createdAt
+
+    ScanSummary:
+      type: object
+      properties:
+        id:
+          type: string
+        status:
+          type: string
+        startedAt:
+          type: string
+          format: date-time
+          nullable: true
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+        findingsCount:
+          type: integer
+        criticalCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - status
+        - findingsCount
+        - criticalCount
+        - createdAt
+
+    ScanWithProject:
+      type: object
+      properties:
+        id:
+          type: string
+        projectId:
+          type: string
+        projectName:
+          type: string
+        status:
+          type: string
+          enum: [PENDING, RUNNING, COMPLETED, FAILED]
+        startedAt:
+          type: string
+          format: date-time
+          nullable: true
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+        findingsCount:
+          type: integer
+        criticalCount:
+          type: integer
+        highCount:
+          type: integer
+        mediumCount:
+          type: integer
+        lowCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - projectId
+        - projectName
+        - status
+        - findingsCount
+        - criticalCount
+        - highCount
+        - mediumCount
+        - lowCount
+        - createdAt
+
+    ScanDetail:
+      type: object
+      properties:
+        id:
+          type: string
+        projectId:
+          type: string
+        projectName:
+          type: string
+        status:
+          type: string
+          enum: [PENDING, RUNNING, COMPLETED, FAILED]
+        startedAt:
+          type: string
+          format: date-time
+          nullable: true
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+        findingsCount:
+          type: integer
+        criticalCount:
+          type: integer
+        highCount:
+          type: integer
+        mediumCount:
+          type: integer
+        lowCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        findings:
+          type: array
+          items:
+            $ref: "#/components/schemas/FindingWithProject"
+        logs:
+          type: array
+          items:
+            $ref: "#/components/schemas/ScanLog"
+      required:
+        - id
+        - projectId
+        - projectName
+        - status
+        - findingsCount
+        - criticalCount
+        - highCount
+        - mediumCount
+        - lowCount
+        - createdAt
+        - findings
+        - logs
+
+    ScanLog:
+      type: object
+      properties:
+        id:
+          type: string
+        scanId:
+          type: string
+        level:
+          type: string
+          enum: [INFO, WARN, ERROR, DEBUG]
+        message:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - scanId
+        - level
+        - message
+        - createdAt
+
+    Finding:
+      type: object
+      properties:
+        id:
+          type: string
+        scanId:
+          type: string
+        projectId:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        endpoint:
+          type: string
+        severity:
+          type: string
+          enum: [CRITICAL, HIGH, MEDIUM, LOW, INFO]
+        status:
+          type: string
+          enum: [OPEN, IN_PROGRESS, FIXED, WONT_FIX, FALSE_POSITIVE]
+        cvss:
+          type: number
+          nullable: true
+        cwe:
+          type: string
+          nullable: true
+        owasp:
+          type: string
+          nullable: true
+        pocCode:
+          type: string
+          nullable: true
+        fixPatch:
+          type: string
+          nullable: true
+        fixExplanation:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - scanId
+        - projectId
+        - title
+        - description
+        - endpoint
+        - severity
+        - status
+        - createdAt
+        - updatedAt
+
+    FindingWithProject:
+      type: object
+      properties:
+        id:
+          type: string
+        scanId:
+          type: string
+        projectId:
+          type: string
+        projectName:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        endpoint:
+          type: string
+        severity:
+          type: string
+          enum: [CRITICAL, HIGH, MEDIUM, LOW, INFO]
+        status:
+          type: string
+          enum: [OPEN, IN_PROGRESS, FIXED, WONT_FIX, FALSE_POSITIVE]
+        cvss:
+          type: number
+          nullable: true
+        cwe:
+          type: string
+          nullable: true
+        owasp:
+          type: string
+          nullable: true
+        pocCode:
+          type: string
+          nullable: true
+        fixPatch:
+          type: string
+          nullable: true
+        fixExplanation:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - scanId
+        - projectId
+        - projectName
+        - title
+        - description
+        - endpoint
+        - severity
+        - status
+        - createdAt
+        - updatedAt
+
+    UpdateFindingRequest:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [OPEN, IN_PROGRESS, FIXED, WONT_FIX, FALSE_POSITIVE]
+
+    ApiKey:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        keyPreview:
+          type: string
+        workspaceId:
+          type: string
+        lastUsedAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - keyPreview
+        - workspaceId
+        - createdAt
+
+    ApiKeyWithSecret:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        keyPreview:
+          type: string
+        secret:
+          type: string
+        workspaceId:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - keyPreview
+        - secret
+        - workspaceId
+        - createdAt
+
+    CreateApiKeyRequest:
+      type: object
+      properties:
+        name:
+          type: string
+      required:
+        - name
+
+    CreateCheckoutRequest:
+      type: object
+      properties:
+        plan:
+          type: string
+          enum: [PRO, ENTERPRISE]
+      required:
+        - plan
+
+    CheckoutResponse:
+      type: object
+      properties:
+        url:
+          type: string
+      required:
+        - url
+
+    DashboardStats:
+      type: object
+      properties:
+        totalProjects:
+          type: integer
+        totalScans:
+          type: integer
+        openFindings:
+          type: integer
+        criticalFindings:
+          type: integer
+        highFindings:
+          type: integer
+        mediumFindings:
+          type: integer
+        lowFindings:
+          type: integer
+        fixedFindings:
+          type: integer
+        scansThisMonth:
+          type: integer
+        recentFindings:
+          type: array
+          items:
+            $ref: "#/components/schemas/FindingWithProject"
+        recentScans:
+          type: array
+          items:
+            $ref: "#/components/schemas/ScanWithProject"
+      required:
+        - totalProjects
+        - totalScans
+        - openFindings
+        - criticalFindings
+        - highFindings
+        - mediumFindings
+        - lowFindings
+        - fixedFindings
+        - scansThisMonth
+        - recentFindings
+        - recentScans

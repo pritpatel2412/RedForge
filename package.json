@@ -2,6 +2,8 @@
   "name": "workspace",
   "version": "0.0.0",
   "license": "MIT",
+  "private": true,
+  "type": "module",
   "scripts": {
     "dev:api": "cross-env PORT=8080 dotenv -e .env -- pnpm --filter @workspace/api-server run dev",
     "dev:web": "cross-env PORT=5173 BASE_PATH=/ dotenv -e .env -- pnpm --filter @workspace/redforge run dev",
@@ -13,7 +15,6 @@
     "typecheck:libs": "tsc --build",
     "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck"
   },
-  "private": true,
   "devDependencies": {
     "@rollup/rollup-win32-x64-msvc": "^4.60.1",
     "concurrently": "^9.2.1",

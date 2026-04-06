@@ -54,15 +54,26 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       retry: 1,
+      retryDelay: 500,
       refetchOnWindowFocus: false,
-      staleTime: 30_000,
-      gcTime: 5 * 60 * 1000,
+      refetchOnReconnect: true,
+      staleTime: 2 * 60 * 1000,       // 2 min — avoid redundant refetches
+      gcTime: 10 * 60 * 1000,         // 10 min — keep cache warm
+      networkMode: "offlineFirst",     // serve cache instantly, revalidate in bg
+    },
+    mutations: {
+      retry: 0,
+      networkMode: "always",
     },
   },
 });
 
 function S({ children }: { children: React.ReactNode }) {
-  return <Suspense fallback={<PageLoader />}>{children}</Suspense>;
+  return (
+    <Suspense fallback={<PageLoader />}>
+      {children}
+    </Suspense>
+  );
 }
 
 function Router() {

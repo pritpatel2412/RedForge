@@ -8,13 +8,14 @@ import { CommandPalette } from "../CommandPalette";
 import { TrialBanner } from "./TrialBanner";
 
 const pageVariants = {
-  hidden:  { opacity: 0, y: 8 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.18, ease: [0.16, 1, 0.3, 1] } },
-  exit:    { opacity: 0,      transition: { duration: 0.08 } },
-};
+  hidden:  { opacity: 0, y: 4 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.13, ease: [0.16, 1, 0.3, 1] as [number,number,number,number] } },
+  exit:    { opacity: 0,      transition: { duration: 0.06 } },
+} as const;
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
-  const { data: auth, isLoading, error } = useGetMe({ query: { retry: false } });
+  // staleTime is set globally in QueryClient (2 min) — cached auth renders instantly
+  const { data: auth, isLoading, error } = useGetMe();
   const [location, setLocation] = useLocation();
 
   useEffect(() => {

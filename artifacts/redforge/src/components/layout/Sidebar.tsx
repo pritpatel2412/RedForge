@@ -1,4 +1,5 @@
 import { Link, useLocation } from "wouter";
+import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
@@ -30,10 +31,29 @@ const navItems = [
 
 export function Sidebar({ workspace, user }: { workspace?: Workspace; user?: any }) {
   const [location] = useLocation();
+  const queryClient = useQueryClient();
   const plan = workspace?.plan || "FREE";
   const isPro = plan === "PRO" || plan === "ENTERPRISE";
   const initial = workspace?.name?.charAt(0).toUpperCase() || "W";
   const isAdmin = user?.role === "admin";
+
+  // Prefetch a route's data when hovering sidebar link
+  const prefetch = (path: string) => {
+    const keyMap: Record<string, string[]> = {
+      "/dashboard":  ["/api/dashboard"],
+      "/projects":   ["/api/projects"],
+      "/scans":      ["/api/scans"],
+      "/findings":   ["/api/findings"],
+      "/analytics":  ["/api/dashboard"],
+      "/settings":   ["/api/workspace"],
+    };
+    const keys = keyMap[path];
+    if (keys) {
+      keys.forEach(queryKey => {
+        queryClient.prefetchQuery({ queryKey: [queryKey], staleTime: 60_000 });
+      });
+    }
+  };
 
   return (
     <aside className="w-60 border-r border-border hidden md:flex flex-col z-10 h-full relative" style={{ background: "oklch(6% 0 0)" }}>
@@ -77,9 +97,10 @@ export function Sidebar({ workspace, user }: { workspace?: Workspace; user?: any
           const isActive = location === item.href || (item.href !== "/dashboard" && location.startsWith(`${item.href}/`));
           const isHighlight = (item as any).highlight;
           return (
-            <Link
+              <Link
               key={item.name}
               href={item.href}
+              onMouseEnter={() => prefetch(item.href)}
               className={cn(
                 "relative flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 group",
                 isActive
@@ -97,7 +118,7 @@ export function Sidebar({ workspace, user }: { workspace?: Workspace; user?: any
                 <motion.div
                   layoutId="sidebar-active"
                   className="absolute inset-0 rounded-xl bg-white/6 border border-white/10"
-                  transition={{ type: "spring", stiffness: 400, damping: 35 }}
+              transition={{ type: "spring", stiffness: 500, damping: 40 }}
                 />
               )}
               <item.icon className={cn(

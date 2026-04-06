@@ -1,4 +1,4 @@
-import { Router, type IRouter } from "express";
+import { Router } from "express";
 import healthRouter from "./health.js";
 import authRouter from "./auth.js";
 import projectsRouter from "./projects.js";
@@ -14,7 +14,7 @@ import attackGraphRouter from "./attack-graph.js";
 import adminRouter from "./admin.js";
 import couponsRouter from "./coupons.js";
 
-const router: IRouter = Router();
+const router = Router();
 
 router.use(healthRouter);
 router.use("/auth", authRouter);

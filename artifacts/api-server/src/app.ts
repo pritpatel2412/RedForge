@@ -1,4 +1,4 @@
-import express, { type Express } from "express";
+import express, { type Application, type Request, type Response, type NextFunction } from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import pinoHttp from "pino-http";
@@ -6,27 +6,26 @@ import compression from "compression";
 import router from "./routes/index.js";
 import { logger } from "./lib/logger.js";
 
-const app: Express = express();
+// Use Application type from express instead of Express for better compatibility in 5.x
+const app: Application = express();
 
 // ── Compression — skip SSE, lower threshold for faster small responses ─────
 app.use(compression({
-  level: 4,           // Faster compression (was 6)
-  threshold: 512,     // Compress more aggressively (was 1024)
-  filter: (req, res) => {
+  level: 4,           // Faster compression
+  threshold: 512,     // Compress more aggressively
+  filter: (req: Request, res: Response) => {
     if (req.headers['accept']?.includes('text/event-stream')) return false;
     return compression.filter(req, res);
   }
 }));
 
 // ── Global performance headers ─────────────────────────────────────────────
-app.use((_req, res, next) => {
+app.use((_req: Request, res: Response, next: NextFunction) => {
   res.setHeader("Connection", "keep-alive");
   res.setHeader("Keep-Alive", "timeout=30, max=1000");
   res.setHeader("X-Content-Type-Options", "nosniff");
   next();
 });
-
-import type { IncomingMessage, ServerResponse } from "node:http";
 
 app.use(
   (pinoHttp as any)({
@@ -52,7 +51,7 @@ app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
 
 // ── Cache GET API responses briefly to reduce redundant DB hits ───────────
-app.use("/api", (req, res, next) => {
+app.use("/api", (req: Request, res: Response, next: NextFunction) => {
   if (req.method === "GET") {
     // Short cache: 10s for lists, 0 for auth/user
     const noCache = ["/api/auth", "/api/me", "/api/workspace"];

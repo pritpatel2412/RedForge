@@ -1,5 +1,11 @@
 {
   "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@workspace/db": ["./lib/db/src/index.ts"],
+      "@workspace/db/schema": ["./lib/db/src/schema/index.ts"],
+      "@workspace/api-zod": ["./lib/api-zod/src/index.ts"]
+    },
     "isolatedModules": true,
     "lib": ["es2022"],
     "module": "esnext",

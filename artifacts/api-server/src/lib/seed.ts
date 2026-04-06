@@ -1,4 +1,5 @@
-import { db, usersTable, workspacesTable, workspaceMembersTable } from "@workspace/db";
+import { db } from "@workspace/db";
+import { usersTable, workspacesTable, workspaceMembersTable } from "@workspace/db/schema";
 import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { randomUUID } from "crypto";

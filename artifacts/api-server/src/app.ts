@@ -1,4 +1,4 @@
-import express, { type Application, type Request, type Response, type NextFunction } from "express";
+import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import pinoHttp from "pino-http";
@@ -6,21 +6,20 @@ import compression from "compression";
 import router from "./routes/index.js";
 import { logger } from "./lib/logger.js";
 
-// Use Application type from express instead of Express for better compatibility in 5.x
-const app: Application = express();
+const app = express();
 
 // ── Compression — skip SSE, lower threshold for faster small responses ─────
 app.use(compression({
   level: 4,           // Faster compression
   threshold: 512,     // Compress more aggressively
-  filter: (req: Request, res: Response) => {
+  filter: (req: any, res: any) => {
     if (req.headers['accept']?.includes('text/event-stream')) return false;
     return compression.filter(req, res);
   }
 }));
 
 // ── Global performance headers ─────────────────────────────────────────────
-app.use((_req: Request, res: Response, next: NextFunction) => {
+app.use((_req: any, res: any, next: any) => {
   res.setHeader("Connection", "keep-alive");
   res.setHeader("Keep-Alive", "timeout=30, max=1000");
   res.setHeader("X-Content-Type-Options", "nosniff");
@@ -51,11 +50,11 @@ app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
 
 // ── Cache GET API responses briefly to reduce redundant DB hits ───────────
-app.use("/api", (req: Request, res: Response, next: NextFunction) => {
+app.use("/api", (req: any, res: any, next: any) => {
   if (req.method === "GET") {
     // Short cache: 10s for lists, 0 for auth/user
     const noCache = ["/api/auth", "/api/me", "/api/workspace"];
-    const isNoCache = noCache.some(p => req.path.startsWith(p.replace("/api", "")));
+    const isNoCache = noCache.some((p: string) => req.path.startsWith(p.replace("/api", "")));
     if (!isNoCache) {
       res.setHeader("Cache-Control", "private, max-age=10, stale-while-revalidate=30");
     } else {
@@ -68,3 +67,4 @@ app.use("/api", (req: Request, res: Response, next: NextFunction) => {
 app.use("/api", router);
 
 export default app;
+

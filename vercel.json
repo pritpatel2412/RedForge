@@ -2,7 +2,7 @@
   "version": 2,
   "functions": {
     "artifacts/api-server/dist/index.mjs": {
-      "runtime": "@vercel/node"
+      "runtime": "nodejs20.x"
     }
   },
   "routes": [

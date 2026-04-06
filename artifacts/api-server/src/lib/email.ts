@@ -9,6 +9,9 @@ const BASE_STYLES = `
 `;
 
 function emailLayout(content: string, previewText = ""): string {
+  const appUrl = (process.env.APP_URL || "").replace(/\/$/, "");
+  const logoSrc = appUrl ? `${appUrl}/email-logo.png` : "";
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -20,9 +23,9 @@ ${previewText ? `<meta name="description" content="${previewText}">` : ""}
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { ${BASE_STYLES} }
   .wrapper { max-width: 600px; margin: 0 auto; padding: 40px 20px; }
-  .logo-row { display: flex; align-items: center; gap: 10px; margin-bottom: 32px; }
-  .logo-icon { width: 36px; height: 36px; background: linear-gradient(135deg, #e11d48, #9f1239); border-radius: 8px; display: flex; align-items: center; justify-content: center; }
-  .logo-text { font-size: 18px; font-weight: 700; color: #fff; letter-spacing: -0.5px; }
+  .logo-row { text-align: center; margin-bottom: 32px; }
+  .logo-img { width: 72px; height: 72px; object-fit: contain; display: inline-block; }
+  .logo-text { display: inline-block; font-size: 22px; font-weight: 700; color: #fff; letter-spacing: -0.5px; vertical-align: middle; margin-left: 10px; }
   .card { background: #0d0d0d; border: 1px solid #1f1f1f; border-radius: 12px; padding: 32px; margin-bottom: 24px; }
   h1 { font-size: 24px; font-weight: 700; color: #ffffff; margin-bottom: 12px; letter-spacing: -0.5px; }
   h2 { font-size: 18px; font-weight: 600; color: #ffffff; margin-bottom: 8px; }
@@ -48,12 +51,10 @@ ${previewText ? `<meta name="description" content="${previewText}">` : ""}
 <body>
 <div class="wrapper">
   <div class="logo-row">
-    <div class="logo-icon">
-      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-        <path d="M4 16L10 4L16 16H4Z" fill="white" opacity="0.9"/>
-      </svg>
-    </div>
-    <span class="logo-text">RedForge</span>
+    ${logoSrc
+      ? `<img src="${logoSrc}" alt="RedForge" class="logo-img" />`
+      : `<span style="font-size:28px;font-weight:800;color:#e11d48;letter-spacing:-1px;">RedForge</span>`
+    }
   </div>
   ${content}
   <div class="footer">
@@ -158,6 +159,36 @@ async function logEmail(
   }
 }
 
+// ── Nodemailer transporter (created once, reused) ──────────────────────────
+import nodemailer from "nodemailer";
+
+function createTransporter() {
+  const smtpUser = process.env.SMTP_USER;
+  const smtpPass = process.env.SMTP_PASS;
+  const smtpHost = process.env.SMTP_HOST || "smtp.gmail.com";
+  const smtpPort = parseInt(process.env.SMTP_PORT || "587", 10);
+  const smtpSecure = process.env.SMTP_SECURE === "true"; // false for 587/STARTTLS, true for 465/SSL
+
+  if (!smtpUser || !smtpPass) {
+    return null; // no credentials — simulation mode
+  }
+
+  // Use Gmail service shorthand when host is Gmail — handles TLS/auth correctly
+  const isGmail = smtpHost.includes("gmail.com");
+  return nodemailer.createTransport({
+    ...(isGmail
+      ? { service: "gmail" }
+      : { host: smtpHost, port: smtpPort, secure: smtpSecure }),
+    auth: {
+      user: smtpUser,
+      pass: smtpPass,
+    },
+    tls: {
+      rejectUnauthorized: false, // fixes self-signed cert errors in dev/tunnel environments
+    },
+  });
+}
+
 export async function sendEmail(params: {
   to: string;
   subject: string;
@@ -166,25 +197,22 @@ export async function sendEmail(params: {
   metadata?: Record<string, any>;
 }): Promise<boolean> {
   const { to, subject, html, template, metadata } = params;
-  const apiKey = process.env.RESEND_API_KEY;
+  const fromName = process.env.SMTP_FROM_NAME || "RedForge";
+  const fromEmail = process.env.SMTP_USER || "try.prit24@gmail.com";
+  const from = `${fromName} <${fromEmail}>`;
 
-  if (!apiKey) {
-    console.log(`[email] No RESEND_API_KEY — would send to ${to}: ${subject}`);
+  const transporter = createTransporter();
+
+  if (!transporter) {
+    console.log(`[email] No SMTP credentials — would send to ${to}: ${subject}`);
     await logEmail(to, subject, template, "sent", undefined, { ...metadata, simulated: true });
     return true;
   }
 
   try {
-    const { Resend } = await import("resend");
-    const resend = new Resend(apiKey);
-    const { error } = await resend.emails.send({
-      from: "RedForge <try.prit24@gmail.com>",
-      to,
-      subject,
-      html,
-    });
-    if (error) throw new Error(error.message);
+    await transporter.sendMail({ from, to, subject, html });
     await logEmail(to, subject, template, "sent", undefined, metadata);
+    console.log(`[email] Sent "${subject}" → ${to}`);
     return true;
   } catch (err: any) {
     console.error("[email] send failed:", err.message);

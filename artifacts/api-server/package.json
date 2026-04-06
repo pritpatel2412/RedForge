@@ -12,6 +12,7 @@
   "dependencies": {
     "@types/bcryptjs": "^3.0.0",
     "@types/compression": "^1.8.1",
+    "@types/nodemailer": "^8.0.0",
     "@types/uuid": "^11.0.0",
     "@workspace/api-zod": "workspace:*",
     "@workspace/db": "workspace:*",
@@ -21,6 +22,7 @@
     "cors": "^2",
     "drizzle-orm": "catalog:",
     "express": "^5",
+    "nodemailer": "^8.0.4",
     "pino": "^9",
     "pino-http": "^10",
     "resend": "^6.10.0",

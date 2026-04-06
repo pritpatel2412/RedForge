@@ -4,6 +4,7 @@
   "exclude": ["node_modules", "build", "dist", "**/*.test.ts"],
   "compilerOptions": {
     "noEmit": true,
+    "baseUrl": "../../",
     "jsx": "preserve",
     "lib": ["esnext", "dom", "dom.iterable"],
     "resolveJsonModule": true,
@@ -11,7 +12,10 @@
     "moduleResolution": "bundler",
     "types": ["node", "vite/client"],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./artifacts/redforge/src/*"],
+      "@workspace/db": ["./lib/db/src/index.ts"],
+      "@workspace/db/schema": ["./lib/db/src/schema/index.ts"],
+      "@workspace/api-zod": ["./lib/api-zod/src/index.ts"]
     }
   },
   "references": [

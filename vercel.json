@@ -5,21 +5,21 @@
       "runtime": "@vercel/node"
     }
   },
-  "rewrites": [
+  "routes": [
     {
-      "source": "/api/(.*)",
-      "destination": "artifacts/api-server/dist/index.mjs"
+      "src": "/api/(.*)",
+      "dest": "artifacts/api-server/dist/index.mjs"
     },
     {
       "handle": "filesystem"
     },
     {
-      "source": "/(.*)",
-      "destination": "artifacts/redforge/dist/$1"
+      "src": "/assets/(.*)",
+      "dest": "artifacts/redforge/dist/assets/$1"
     },
     {
-      "source": "/(.*)",
-      "destination": "artifacts/redforge/dist/index.html"
+      "src": "/(.*)",
+      "dest": "artifacts/redforge/dist/index.html"
     }
   ]
 }

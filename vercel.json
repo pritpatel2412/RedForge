@@ -1,0 +1,19 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "artifacts/api-server/dist/index.mjs",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "artifacts/redforge/dist/**",
+      "use": "@vercel/static"
+    }
+  ],
+  "routes": [
+    { "src": "/api/(.*)", "dest": "artifacts/api-server/dist/index.mjs" },
+    { "src": "/assets/(.*)", "dest": "artifacts/redforge/dist/assets/$1" },
+    { "handle": "filesystem" },
+    { "src": "/(.*)", "dest": "artifacts/redforge/dist/index.html" }
+  ]
+}

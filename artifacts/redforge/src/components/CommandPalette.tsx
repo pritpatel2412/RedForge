@@ -130,7 +130,7 @@ function CmdItem({
   children,
   danger,
 }: {
-  icon: React.ElementType;
+  icon: React.FC<React.SVGProps<SVGSVGElement>>;
   onSelect: () => void;
   children: React.ReactNode;
   danger?: boolean;

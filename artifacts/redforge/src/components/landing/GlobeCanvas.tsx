@@ -170,7 +170,7 @@ export default function GlobeCanvas({ size = 380 }: { size?: number }) {
     canvas.height = size * dpr;
     canvas.style.width = size + "px";
     canvas.style.height = size + "px";
-    ctx.scale(dpr, dpr);
+    ctx!.scale(dpr, dpr);
 
     const cx = size / 2;
     const cy = size / 2;
@@ -217,21 +217,21 @@ export default function GlobeCanvas({ size = 380 }: { size?: number }) {
     const startTime = performance.now();
 
     function draw() {
-      ctx.clearRect(0, 0, size, size);
+      ctx!.clearRect(0, 0, size, size);
       angle += 0.0025;
 
       // ── Outer circle border ──────────────────────────────────────────────
-      ctx.beginPath();
-      ctx.arc(cx, cy, R, 0, Math.PI * 2);
-      ctx.strokeStyle = "rgba(255,255,255,0.18)";
-      ctx.lineWidth = 0.8;
-      ctx.stroke();
+      ctx!.beginPath();
+      ctx!.arc(cx, cy, R, 0, Math.PI * 2);
+      ctx!.strokeStyle = "rgba(255,255,255,0.18)";
+      ctx!.lineWidth = 0.8;
+      ctx!.stroke();
 
       // Clip to globe
-      ctx.save();
-      ctx.beginPath();
-      ctx.arc(cx, cy, R + 1, 0, Math.PI * 2);
-      ctx.clip();
+      ctx!.save();
+      ctx!.beginPath();
+      ctx!.arc(cx, cy, R + 1, 0, Math.PI * 2);
+      ctx!.clip();
 
       // ── Latitude grid lines ──────────────────────────────────────────────
       const LATITUDES = [-60, -30, 0, 30, 60];
@@ -248,12 +248,12 @@ export default function GlobeCanvas({ size = 380 }: { size?: number }) {
           pts.push({ px, py });
         }
         if (pts.length > 1) {
-          ctx.beginPath();
-          ctx.moveTo(pts[0].px, pts[0].py);
-          for (const p of pts.slice(1)) ctx.lineTo(p.px, p.py);
-          ctx.strokeStyle = "rgba(255,255,255,0.04)";
-          ctx.lineWidth = 0.6;
-          ctx.stroke();
+          ctx!.beginPath();
+          ctx!.moveTo(pts[0].px, pts[0].py);
+          for (const p of pts.slice(1)) ctx!.lineTo(p.px, p.py);
+          ctx!.strokeStyle = "rgba(255,255,255,0.04)";
+          ctx!.lineWidth = 0.6;
+          ctx!.stroke();
         }
       }
 
@@ -273,12 +273,12 @@ export default function GlobeCanvas({ size = 380 }: { size?: number }) {
           pts.push({ px, py });
         }
         if (pts.length > 1) {
-          ctx.beginPath();
-          ctx.moveTo(pts[0].px, pts[0].py);
-          for (const p of pts.slice(1)) ctx.lineTo(p.px, p.py);
-          ctx.strokeStyle = "rgba(255,255,255,0.04)";
-          ctx.lineWidth = 0.6;
-          ctx.stroke();
+          ctx!.beginPath();
+          ctx!.moveTo(pts[0].px, pts[0].py);
+          for (const p of pts.slice(1)) ctx!.lineTo(p.px, p.py);
+          ctx!.strokeStyle = "rgba(255,255,255,0.04)";
+          ctx!.lineWidth = 0.6;
+          ctx!.stroke();
         }
       }
 
@@ -289,10 +289,10 @@ export default function GlobeCanvas({ size = 380 }: { size?: number }) {
         const alpha = Math.max(0, (rz + 1) / 2);
         const { px, py } = project(rx, ry, rz);
         const dotR = 0.9 + alpha * 1.1;
-        ctx.beginPath();
-        ctx.arc(px, py, dotR, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(255,255,255,${(alpha * 0.75).toFixed(2)})`;
-        ctx.fill();
+        ctx!.beginPath();
+        ctx!.arc(px, py, dotR, 0, Math.PI * 2);
+        ctx!.fillStyle = `rgba(255,255,255,${(alpha * 0.75).toFixed(2)})`;
+        ctx!.fill();
       }
 
       // ── Arc lines ────────────────────────────────────────────────────────
@@ -314,12 +314,12 @@ export default function GlobeCanvas({ size = 380 }: { size?: number }) {
           if (rz < 0) { prevPt = null; continue; }
           const { px, py } = project(rx, ry, rz);
           if (prevPt) {
-            ctx.beginPath();
-            ctx.moveTo(prevPt.px, prevPt.py);
-            ctx.lineTo(px, py);
-            ctx.strokeStyle = "rgba(255,255,255,0.12)";
-            ctx.lineWidth = 0.8;
-            ctx.stroke();
+            ctx!.beginPath();
+            ctx!.moveTo(prevPt.px, prevPt.py);
+            ctx!.lineTo(px, py);
+            ctx!.strokeStyle = "rgba(255,255,255,0.12)";
+            ctx!.lineWidth = 0.8;
+            ctx!.stroke();
           }
           prevPt = { px, py };
         }
@@ -358,12 +358,12 @@ export default function GlobeCanvas({ size = 380 }: { size?: number }) {
           const bright = Math.pow(frac, 0.5);
 
           if (prevPt) {
-            ctx.beginPath();
-            ctx.moveTo(prevPt.px, prevPt.py);
-            ctx.lineTo(px, py);
-            ctx.strokeStyle = `rgba(255,255,255,${(bright * 0.85).toFixed(2)})`;
-            ctx.lineWidth = 1.5;
-            ctx.stroke();
+            ctx!.beginPath();
+            ctx!.moveTo(prevPt.px, prevPt.py);
+            ctx!.lineTo(px, py);
+            ctx!.strokeStyle = `rgba(255,255,255,${(bright * 0.85).toFixed(2)})`;
+            ctx!.lineWidth = 1.5;
+            ctx!.stroke();
           }
           prevPt = { px, py };
         }
@@ -379,20 +379,20 @@ export default function GlobeCanvas({ size = 380 }: { size?: number }) {
         const glowR = sq * 2.5;
 
         // Glow
-        const grd = ctx.createRadialGradient(px, py, 0, px, py, glowR);
+        const grd = ctx!.createRadialGradient(px, py, 0, px, py, glowR);
         grd.addColorStop(0, `rgba(255,255,255,${(alpha * 0.35).toFixed(2)})`);
         grd.addColorStop(1, "rgba(255,255,255,0)");
-        ctx.beginPath();
-        ctx.arc(px, py, glowR, 0, Math.PI * 2);
-        ctx.fillStyle = grd;
-        ctx.fill();
+        ctx!.beginPath();
+        ctx!.arc(px, py, glowR, 0, Math.PI * 2);
+        ctx!.fillStyle = grd;
+        ctx!.fill();
 
         // Square
-        ctx.fillStyle = `rgba(255,255,255,${alpha.toFixed(2)})`;
-        ctx.fillRect(px - sq / 2, py - sq / 2, sq, sq);
+        ctx!.fillStyle = `rgba(255,255,255,${alpha.toFixed(2)})`;
+        ctx!.fillRect(px - sq / 2, py - sq / 2, sq, sq);
       }
 
-      ctx.restore();
+      ctx!.restore();
       raf = requestAnimationFrame(draw);
     }
 

@@ -13,10 +13,10 @@ export default function ScanDetail() {
   const logEndRef = useRef<HTMLDivElement>(null);
 
   // Use real-time status from SSE, fall back to fetched scan status
-  const currentStatus = liveStatus?.status ?? scan?.status ?? "PENDING";
-  const currentFindingsCount = liveStatus?.findingsCount ?? scan?.findingsCount ?? 0;
-  const currentCriticalCount = liveStatus?.criticalCount ?? scan?.criticalCount ?? 0;
-  const currentRiskScore = liveStatus?.riskScore ?? scan?.riskScore ?? null;
+  const currentStatus = (liveStatus as any)?.status ?? (scan as any)?.status ?? "PENDING";
+  const currentFindingsCount = (liveStatus as any)?.findingsCount ?? (scan as any)?.findingsCount ?? 0;
+  const currentCriticalCount = (liveStatus as any)?.criticalCount ?? (scan as any)?.criticalCount ?? 0;
+  const currentRiskScore = (liveStatus as any)?.riskScore ?? (scan as any)?.riskScore ?? null;
 
   const riskColor =
     currentRiskScore === null ? "text-zinc-400"

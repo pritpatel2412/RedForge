@@ -16,7 +16,7 @@ import {
   Bot,
   ShieldAlert,
 } from "lucide-react";
-import type { Workspace } from "@workspace/api-client-react/src/generated/api.schemas";
+import type { Workspace, User } from "@workspace/api-client-react";
 
 const navItems = [
   { name: "Dashboard",   href: "/dashboard",  icon: LayoutDashboard },

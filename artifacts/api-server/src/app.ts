@@ -26,12 +26,22 @@ app.use((_req, res, next) => {
   next();
 });
 
+import type { IncomingMessage, ServerResponse } from "node:http";
+
 app.use(
-  pinoHttp({
+  (pinoHttp as any)({
     logger,
     serializers: {
-      req(req) { return { id: req.id, method: req.method, url: req.url?.split("?")[0] }; },
-      res(res) { return { statusCode: res.statusCode }; },
+      req(req: any) { 
+        return { 
+          id: req.id, 
+          method: req.method, 
+          url: req.url?.split("?")[0] 
+        }; 
+      },
+      res(res: any) { 
+        return { statusCode: res.statusCode }; 
+      },
     },
   }),
 );

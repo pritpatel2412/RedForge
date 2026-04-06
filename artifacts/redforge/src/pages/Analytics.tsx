@@ -23,7 +23,7 @@ const STATUS_COLORS: Record<string, string> = {
   FALSE_POSITIVE: "#6366f1",
 };
 
-const fadeUp = {
+const fadeUp: any = {
   hidden: { opacity: 0, y: 18 },
   visible: (i = 0) => ({ opacity: 1, y: 0, transition: { delay: i * 0.07, duration: 0.4, ease: [0.16, 1, 0.3, 1] } }),
 };

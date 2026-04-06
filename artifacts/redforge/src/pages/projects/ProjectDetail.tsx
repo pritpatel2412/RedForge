@@ -13,7 +13,7 @@ type ScanMode = "PASSIVE" | "ACTIVE" | "CONTINUOUS";
 const SCAN_MODES: {
   id: ScanMode;
   label: string;
-  icon: React.ElementType;
+  icon: React.FC<React.SVGProps<SVGSVGElement>>;
   description: string;
   modules: string[];
   color: string;

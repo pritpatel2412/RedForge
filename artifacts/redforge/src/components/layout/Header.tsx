@@ -4,7 +4,7 @@ import { Search, Bell, LogOut, X, LayoutDashboard, FolderOpen, Scan, ShieldAlert
 import { useLogout } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
-import type { User } from "@workspace/api-client-react/src/generated/api.schemas";
+import type { User } from "@workspace/api-client-react";
 
 // ── Search index ──────────────────────────────────────────────────────────────
 const SEARCH_ITEMS = [
@@ -169,10 +169,10 @@ export function Header({ user }: { user?: User }) {
             <AnimatePresence>
               {notifOpen && (
                 <motion.div
-                  initial={{ opacity: 0, y: 8, scale: 0.96 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 8, scale: 0.96 }}
-                  transition={{ duration: 0.18 }}
+                  initial={{ opacity: 0, y: 8, scale: 0.96 } as any}
+                  animate={{ opacity: 1, y: 0, scale: 1 } as any}
+                  exit={{ opacity: 0, y: 8, scale: 0.96 } as any}
+                  transition={{ duration: 0.18 } as any}
                   className="absolute right-0 top-10 w-80 rounded-xl border border-border shadow-2xl overflow-hidden z-50"
                   style={{ background: "oklch(8% 0 0)" }}
                 >

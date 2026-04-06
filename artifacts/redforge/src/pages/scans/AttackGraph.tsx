@@ -95,7 +95,7 @@ function TargetNode({ data }: { data: any }) {
 const nodeTypes = { attacker: AttackerNode, vulnerability: VulnNode, target: TargetNode };
 
 // ─── Layout ───────────────────────────────────────────────────────────────────
-function buildLayout(gnodes: GNode[], gedges: GEdge[]): { nodes: Node[]; edges: Edge[] } {
+function buildLayout(gnodes: GNode[], gedges: GEdge[]): { nodes: any[]; edges: any[] } {
   const layer: Record<string,number> = {};
   gnodes.forEach(n => {
     if (n.type === "attacker") layer[n.id] = 0;
@@ -109,7 +109,7 @@ function buildLayout(gnodes: GNode[], gedges: GEdge[]): { nodes: Node[]; edges: 
   gnodes.forEach(n => { const l = layer[n.id]??1; (byLayer[l] ??= []).push(n); });
 
   const XS = 360, YS = 170;
-  const rfNodes: Node[] = [];
+  const rfNodes: any[] = [];
   Object.entries(byLayer).forEach(([l, ns]) => {
     const x = parseInt(l) * XS + 80;
     ns.forEach((n, i) => {
@@ -118,7 +118,7 @@ function buildLayout(gnodes: GNode[], gedges: GEdge[]): { nodes: Node[]; edges: 
     });
   });
 
-  const rfEdges: Edge[] = gedges.map(e => ({
+  const rfEdges: any[] = gedges.map(e => ({
     id: e.id, source: e.source, target: e.target,
     label: e.label, type: "smoothstep", animated: true,
     markerEnd: { type: MarkerType.ArrowClosed, color: "#7c3aed", width: 16, height: 16 },
@@ -149,8 +149,8 @@ export default function AttackGraph() {
   const evtSource = useRef<EventSource|null>(null);
   const dlMenuRef = useRef<HTMLDivElement>(null);
 
-  const [nodes, setNodes, onNodesChange] = useNodesState([]);
-  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const [nodes, setNodes, onNodesChange] = (useNodesState as any)([]);
+  const [edges, setEdges, onEdgesChange] = (useEdgesState as any)([]);
 
   // ── Materialise graph from record ────────────────────────────────────────
   const applyGraph = useCallback((r: GraphRecord) => {
@@ -610,7 +610,7 @@ export default function AttackGraph() {
           {/* Left: chains */}
           <div className="w-[280px] flex-shrink-0 border-r border-border overflow-y-auto scrollbar-thin" style={{ background:"oklch(6.5% 0 0)" }}>
             <ChainsSidebar g={g} selectedChain={selectedChain} expanded={expanded}
-              onSelect={(c) => { setSelectedChain(c); setSelectedNode(null); }}
+              onSelect={(c: any) => { setSelectedChain(c); setSelectedNode(null); }}
               onToggle={toggleExpand} />
           </div>
 

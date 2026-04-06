@@ -149,7 +149,7 @@ export default function FindingDetail() {
             <div className="space-y-4 text-sm">
               <div>
                 <div className="text-muted-foreground mb-1">Project</div>
-                <Link href={`/projects/${finding.projectId}`} className="text-primary hover:underline font-medium">{finding.projectName || "View Project"}</Link>
+                <Link href={`/projects/${(finding as any).projectId}`} className="text-primary hover:underline font-medium">{(finding as any).projectName || "View Project"}</Link>
               </div>
               <div>
                 <div className="text-muted-foreground mb-1">Discovered</div>

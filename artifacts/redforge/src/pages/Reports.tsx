@@ -467,7 +467,6 @@ async function generatePDF(findings: any[], filters: { severities: string[]; sta
         drawSectionLabel(15, `05 — All Findings  (${findings.length} total)`);
       }
     },
-    addPageContent: () => {},
     margin: { top: 22, bottom: 16, left: 12, right: 12 },
     pageBreak: "auto",
   });

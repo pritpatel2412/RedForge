@@ -9,10 +9,9 @@ export function BetaModal() {
 
   useEffect(() => {
     const seen = localStorage.getItem(STORAGE_KEY);
-    if (!seen) {
-      const t = setTimeout(() => setOpen(true), 600);
-      return () => clearTimeout(t);
-    }
+    if (seen) return;
+    const t = setTimeout(() => setOpen(true), 600);
+    return () => clearTimeout(t);
   }, []);
 
   const dismiss = () => {
@@ -27,10 +26,10 @@ export function BetaModal() {
           {/* Backdrop */}
           <motion.div
             key="backdrop"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
+            initial={{ opacity: 0 } as any}
+            animate={{ opacity: 1 } as any}
+            exit={{ opacity: 0 } as any}
+            transition={{ duration: 0.2 } as any}
             className="fixed inset-0 z-[9998] bg-black/70 backdrop-blur-sm"
             onClick={dismiss}
           />
@@ -38,10 +37,10 @@ export function BetaModal() {
           {/* Modal */}
           <motion.div
             key="modal"
-            initial={{ opacity: 0, scale: 0.92, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.94, y: 10 }}
-            transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+            initial={{ opacity: 0, scale: 0.92, y: 20 } as any}
+            animate={{ opacity: 1, scale: 1, y: 0 } as any}
+            exit={{ opacity: 0, scale: 0.94, y: 10 } as any}
+            transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] } as any}
             className="fixed inset-0 z-[9999] flex items-center justify-center px-4 pointer-events-none"
           >
             <div

@@ -37,7 +37,7 @@ function useScrollInView(threshold = 0.15) {
   return { ref, isInView };
 }
 
-function AnimatedSection({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+function AnimatedSection({ children, className = "", style }: { children: React.ReactNode; className?: string; style?: React.CSSProperties }) {
   const { ref, isInView } = useScrollInView();
   return (
     <motion.div
@@ -46,6 +46,7 @@ function AnimatedSection({ children, className = "" }: { children: React.ReactNo
       initial="hidden"
       animate={isInView ? "visible" : "hidden"}
       className={className}
+      style={style}
     >
       {children}
     </motion.div>
@@ -367,7 +368,7 @@ export default function Landing() {
         <DitherBoundary>
           <div className="absolute inset-0 z-0">
             <Dither
-              waveColor={[0.55, 0.03, 0.12]}
+              waveColor={[0.55, 0.03, 0.12] as [number, number, number]}
               colorNum={4}
               pixelSize={2}
               waveAmplitude={0.3}

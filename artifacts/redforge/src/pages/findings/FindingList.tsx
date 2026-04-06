@@ -7,7 +7,7 @@ import { SeverityBadge, FindingStatusBadge } from "@/components/Badges";
 import { formatDate } from "@/lib/utils";
 import CustomSelect from "@/components/CustomSelect";
 
-const cardVariants = {
+const cardVariants: any = {
   hidden: { opacity: 0, y: 10 },
   visible: (i: number) => ({
     opacity: 1,

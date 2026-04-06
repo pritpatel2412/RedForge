@@ -1,19 +1,25 @@
 {
   "version": 2,
-  "builds": [
+  "functions": {
+    "artifacts/api-server/dist/index.mjs": {
+      "runtime": "@vercel/node"
+    }
+  },
+  "rewrites": [
     {
-      "src": "artifacts/api-server/dist/index.mjs",
-      "use": "@vercel/node"
+      "source": "/api/(.*)",
+      "destination": "artifacts/api-server/dist/index.mjs"
     },
     {
-      "src": "artifacts/redforge/dist/**",
-      "use": "@vercel/static"
+      "handle": "filesystem"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "artifacts/redforge/dist/$1"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "artifacts/redforge/dist/index.html"
     }
-  ],
-  "routes": [
-    { "src": "/api/(.*)", "dest": "artifacts/api-server/dist/index.mjs" },
-    { "src": "/assets/(.*)", "dest": "artifacts/redforge/dist/assets/$1" },
-    { "handle": "filesystem" },
-    { "src": "/(.*)", "dest": "artifacts/redforge/dist/index.html" }
   ]
 }

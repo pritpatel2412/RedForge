@@ -11,7 +11,7 @@ router.get("/", requireAuth, async (req, res) => {
     const workspace = (req as any).workspace;
 
     const projects = await db.select().from(projectsTable)
-      .where(eq(projectsTable.workspaceId, workspace.id));
+      .where(eq(projectsTable.workspaceId as any, workspace.id));
     const projectIds = projects.map(p => p.id);
     const projectMap = Object.fromEntries(projects.map(p => [p.id, p.name]));
 
@@ -39,16 +39,16 @@ router.get("/", requireAuth, async (req, res) => {
 router.get("/:id", requireAuth, async (req, res) => {
   try {
     const workspace = (req as any).workspace;
-    const { id } = req.params;
+    const id = req.params.id as string;
 
-    const [scan] = await db.select().from(scansTable).where(eq(scansTable.id, id)).limit(1);
+    const [scan] = await db.select().from(scansTable).where(eq(scansTable.id as any, id)).limit(1);
     if (!scan) {
       res.status(404).json({ error: "Scan not found" });
       return;
     }
 
     const [project] = await db.select().from(projectsTable)
-      .where(and(eq(projectsTable.id, scan.projectId), eq(projectsTable.workspaceId, workspace.id)))
+      .where(and(eq(projectsTable.id as any, scan.projectId), eq(projectsTable.workspaceId as any, workspace.id)))
       .limit(1);
 
     if (!project) {
@@ -57,11 +57,11 @@ router.get("/:id", requireAuth, async (req, res) => {
     }
 
     const findings = await db.select().from(findingsTable)
-      .where(eq(findingsTable.scanId, id))
+      .where(eq(findingsTable.scanId as any, id))
       .orderBy(desc(findingsTable.createdAt));
 
     const logs = await db.select().from(scanLogsTable)
-      .where(eq(scanLogsTable.scanId, id))
+      .where(eq(scanLogsTable.scanId as any, id))
       .orderBy(scanLogsTable.createdAt);
 
     res.json({
@@ -79,16 +79,16 @@ router.get("/:id", requireAuth, async (req, res) => {
 router.get("/:id/logs", requireAuth, async (req, res: Response) => {
   try {
     const workspace = (req as any).workspace;
-    const { id } = req.params;
+    const id = req.params.id as string;
 
-    const [scan] = await db.select().from(scansTable).where(eq(scansTable.id, id)).limit(1);
+    const [scan] = await db.select().from(scansTable).where(eq(scansTable.id as any, id)).limit(1);
     if (!scan) {
       res.status(404).json({ error: "Scan not found" });
       return;
     }
 
     const [project] = await db.select().from(projectsTable)
-      .where(and(eq(projectsTable.id, scan.projectId), eq(projectsTable.workspaceId, workspace.id)))
+      .where(and(eq(projectsTable.id as any, scan.projectId), eq(projectsTable.workspaceId as any, workspace.id)))
       .limit(1);
 
     if (!project) {
@@ -109,10 +109,10 @@ router.get("/:id/logs", requireAuth, async (req, res: Response) => {
 
     const sendLogs = async () => {
       try {
-        const [currentScan] = await db.select().from(scansTable).where(eq(scansTable.id, id)).limit(1);
+        const [currentScan] = await db.select().from(scansTable).where(eq(scansTable.id as any, id as any)).limit(1);
 
         const logs = await db.select().from(scanLogsTable)
-          .where(eq(scanLogsTable.scanId, id))
+          .where(eq(scanLogsTable.scanId as any, id))
           .orderBy(scanLogsTable.createdAt);
 
         const newLogs = logs.filter(l => !sentIds.has(l.id));
@@ -164,3 +164,4 @@ router.get("/:id/logs", requireAuth, async (req, res: Response) => {
 });
 
 export default router;
+

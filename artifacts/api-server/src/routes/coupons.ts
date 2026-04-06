@@ -21,7 +21,7 @@ router.post("/apply", requireAuth, async (req, res) => {
     const [coupon] = await db
       .select()
       .from(couponsTable)
-      .where(eq(couponsTable.code, code.toUpperCase().trim()))
+      .where(eq(couponsTable.code as any, code.toUpperCase().trim()))
       .limit(1);
 
     if (!coupon || !coupon.isActive) {
@@ -47,7 +47,7 @@ router.post("/apply", requireAuth, async (req, res) => {
     const [alreadyUsed] = await db
       .select()
       .from(couponUsesTable)
-      .where(and(eq(couponUsesTable.couponId, coupon.id), eq(couponUsesTable.workspaceId, workspace.id)))
+      .where(and(eq(couponUsesTable.couponId as any, coupon.id), eq(couponUsesTable.workspaceId as any, workspace.id)))
       .limit(1);
 
     if (alreadyUsed) {
@@ -74,7 +74,7 @@ router.post("/apply", requireAuth, async (req, res) => {
       plan: newPlan,
       trialEndsAt: newTrialEndsAt,
       updatedAt: now,
-    }).where(eq(workspacesTable.id, workspace.id));
+    }).where(eq(workspacesTable.id as any, workspace.id));
 
     await db.insert(couponUsesTable).values({
       couponId: coupon.id,
@@ -85,7 +85,7 @@ router.post("/apply", requireAuth, async (req, res) => {
     await db.update(couponsTable).set({
       usesCount: coupon.usesCount + 1,
       updatedAt: now,
-    }).where(eq(couponsTable.id, coupon.id));
+    }).where(eq(couponsTable.id as any, coupon.id));
 
     await logActivity({ userId: user.id, workspaceId: workspace.id, action: "coupon.applied", metadata: { code: coupon.code, benefit: benefitText }, req });
 
@@ -99,3 +99,4 @@ router.post("/apply", requireAuth, async (req, res) => {
 });
 
 export default router;
+

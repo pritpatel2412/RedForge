@@ -10,7 +10,7 @@ router.get("/stats", requireAuth, async (req, res) => {
     const workspace = (req as any).workspace;
 
     const projects = await db.select().from(projectsTable)
-      .where(eq(projectsTable.workspaceId, workspace.id));
+      .where(eq(projectsTable.workspaceId as any, workspace.id));
 
     const projectIds = projects.map(p => p.id);
     const projectMap = Object.fromEntries(projects.map(p => [p.id, p.name]));
@@ -79,3 +79,4 @@ router.get("/stats", requireAuth, async (req, res) => {
 });
 
 export default router;
+

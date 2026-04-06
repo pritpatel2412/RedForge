@@ -20,7 +20,7 @@ router.post("/create-checkout", requireAuth, async (req, res) => {
     }
 
     const { default: Stripe } = await import("stripe");
-    const stripe = new Stripe(stripeKey);
+    const stripe = new Stripe(stripeKey) as any;
 
     let customerId = workspace.stripeCustomerId;
     if (!customerId) {
@@ -31,7 +31,7 @@ router.post("/create-checkout", requireAuth, async (req, res) => {
       await db.update(workspacesTable).set({
         stripeCustomerId: customerId,
         updatedAt: new Date(),
-      }).where(eq(workspacesTable.id, workspace.id));
+      }).where(eq(workspacesTable.id as any, workspace.id));
     }
 
     const session = await stripe.checkout.sessions.create({
@@ -69,7 +69,7 @@ router.post("/portal", requireAuth, async (req, res) => {
     }
 
     const { default: Stripe } = await import("stripe");
-    const stripe = new Stripe(stripeKey);
+    const stripe = new Stripe(stripeKey) as any;
 
     const session = await stripe.billingPortal.sessions.create({
       customer: workspace.stripeCustomerId,
@@ -94,7 +94,7 @@ router.post("/webhook", async (req, res) => {
     }
 
     const { default: Stripe } = await import("stripe");
-    const stripe = new Stripe(stripeKey);
+    const stripe = new Stripe(stripeKey) as any;
 
     const sig = req.headers["stripe-signature"] as string;
     let event: any;
@@ -114,18 +114,18 @@ router.post("/webhook", async (req, res) => {
           plan: "PRO",
           trialEndsAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
           updatedAt: new Date(),
-        }).where(eq(workspacesTable.id, workspaceId));
+        }).where(eq(workspacesTable.id as any, workspaceId));
       }
     } else if (event.type === "customer.subscription.deleted") {
       const subscription = event.data.object;
       const workspaces = await db.select().from(workspacesTable)
-        .where(eq(workspacesTable.stripeSubscriptionId, subscription.id));
+        .where(eq(workspacesTable.stripeSubscriptionId as any, subscription.id));
       for (const ws of workspaces) {
         await db.update(workspacesTable).set({
           plan: "FREE",
           stripeSubscriptionId: null,
           updatedAt: new Date(),
-        }).where(eq(workspacesTable.id, ws.id));
+        }).where(eq(workspacesTable.id as any, ws.id));
       }
     }
 
@@ -136,3 +136,4 @@ router.post("/webhook", async (req, res) => {
 });
 
 export default router;
+

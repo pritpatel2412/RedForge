@@ -11,7 +11,7 @@ router.get("/", requireAuth, async (req, res) => {
     const { severity, status, projectId } = req.query;
 
     const projects = await db.select().from(projectsTable)
-      .where(eq(projectsTable.workspaceId, workspace.id));
+      .where(eq(projectsTable.workspaceId as any, workspace.id));
     const projectIds = projects.map(p => p.id);
     const projectMap = Object.fromEntries(projects.map(p => [p.id, p.name]));
 
@@ -39,16 +39,16 @@ router.get("/", requireAuth, async (req, res) => {
 router.get("/:id", requireAuth, async (req, res) => {
   try {
     const workspace = (req as any).workspace;
-    const { id } = req.params;
+    const id = req.params.id as string;
 
-    const [finding] = await db.select().from(findingsTable).where(eq(findingsTable.id, id)).limit(1);
+    const [finding] = await db.select().from(findingsTable).where(eq(findingsTable.id as any, id)).limit(1);
     if (!finding) {
       res.status(404).json({ error: "Finding not found" });
       return;
     }
 
     const [project] = await db.select().from(projectsTable)
-      .where(and(eq(projectsTable.id, finding.projectId), eq(projectsTable.workspaceId, workspace.id)))
+      .where(and(eq(projectsTable.id as any, finding.projectId), eq(projectsTable.workspaceId as any, workspace.id)))
       .limit(1);
 
     if (!project) {
@@ -66,17 +66,17 @@ router.get("/:id", requireAuth, async (req, res) => {
 router.patch("/:id", requireAuth, async (req, res) => {
   try {
     const workspace = (req as any).workspace;
-    const { id } = req.params;
+    const id = req.params.id as string;
     const { status } = req.body;
 
-    const [finding] = await db.select().from(findingsTable).where(eq(findingsTable.id, id)).limit(1);
+    const [finding] = await db.select().from(findingsTable).where(eq(findingsTable.id as any, id)).limit(1);
     if (!finding) {
       res.status(404).json({ error: "Finding not found" });
       return;
     }
 
     const [project] = await db.select().from(projectsTable)
-      .where(and(eq(projectsTable.id, finding.projectId), eq(projectsTable.workspaceId, workspace.id)))
+      .where(and(eq(projectsTable.id as any, finding.projectId), eq(projectsTable.workspaceId as any, workspace.id)))
       .limit(1);
 
     if (!project) {
@@ -84,10 +84,10 @@ router.patch("/:id", requireAuth, async (req, res) => {
       return;
     }
 
-    const [updated] = await db.update(findingsTable).set({
+    const [updated] = (await db.update(findingsTable).set({
       status: status || finding.status,
       updatedAt: new Date(),
-    }).where(eq(findingsTable.id, id)).returning();
+    }).where(eq(findingsTable.id as any, id)).returning()) as any;
 
     res.json({ ...updated, projectName: project.name });
   } catch (err) {
@@ -99,16 +99,16 @@ router.patch("/:id", requireAuth, async (req, res) => {
 router.post("/:id/generate-fix", requireAuth, async (req, res) => {
   try {
     const workspace = (req as any).workspace;
-    const { id } = req.params;
+    const id = req.params.id as string;
 
-    const [finding] = await db.select().from(findingsTable).where(eq(findingsTable.id, id)).limit(1);
+    const [finding] = await db.select().from(findingsTable).where(eq(findingsTable.id as any, id)).limit(1);
     if (!finding) {
       res.status(404).json({ error: "Finding not found" });
       return;
     }
 
     const [project] = await db.select().from(projectsTable)
-      .where(and(eq(projectsTable.id, finding.projectId), eq(projectsTable.workspaceId, workspace.id)))
+      .where(and(eq(projectsTable.id as any, finding.projectId), eq(projectsTable.workspaceId as any, workspace.id)))
       .limit(1);
 
     if (!project) {
@@ -175,11 +175,11 @@ Format: Start with the code patch in a code block, then write "EXPLANATION:" fol
       }
     }
 
-    const [updated] = await db.update(findingsTable).set({
+    const [updated] = (await db.update(findingsTable).set({
       fixPatch,
       fixExplanation,
       updatedAt: new Date(),
-    }).where(eq(findingsTable.id, id)).returning();
+    }).where(eq(findingsTable.id as any, id)).returning()) as any;
 
     res.json({ ...updated, projectName: project.name });
   } catch (err) {
@@ -189,3 +189,5 @@ Format: Start with the code patch in a code block, then write "EXPLANATION:" fol
 });
 
 export default router;
+
+

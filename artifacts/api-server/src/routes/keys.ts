@@ -16,7 +16,7 @@ router.get("/", requireAuth, async (req, res) => {
     const workspace = (req as any).workspace;
 
     const keys = await db.select().from(apiKeysTable)
-      .where(eq(apiKeysTable.workspaceId, workspace.id));
+      .where(eq(apiKeysTable.workspaceId as any, workspace.id));
 
     res.json(keys.map(k => ({
       id: k.id,
@@ -46,12 +46,12 @@ router.post("/", requireAuth, async (req, res) => {
     const keyHash = hashKey(secret);
     const keyPreview = `rf_${secret.slice(3, 11)}...`;
 
-    const [key] = await db.insert(apiKeysTable).values({
+    const [key] = (await db.insert(apiKeysTable).values({
       workspaceId: workspace.id,
       name,
       keyHash,
       keyPreview,
-    }).returning();
+    }).returning()) as any;
 
     res.status(201).json({
       id: key.id,
@@ -70,10 +70,10 @@ router.post("/", requireAuth, async (req, res) => {
 router.delete("/:id", requireAuth, async (req, res) => {
   try {
     const workspace = (req as any).workspace;
-    const { id } = req.params;
+    const id = req.params.id as string;
 
     const [key] = await db.select().from(apiKeysTable)
-      .where(and(eq(apiKeysTable.id, id), eq(apiKeysTable.workspaceId, workspace.id)))
+      .where(and(eq(apiKeysTable.id as any, id), eq(apiKeysTable.workspaceId as any, workspace.id)))
       .limit(1);
 
     if (!key) {
@@ -81,7 +81,7 @@ router.delete("/:id", requireAuth, async (req, res) => {
       return;
     }
 
-    await db.delete(apiKeysTable).where(eq(apiKeysTable.id, id));
+    await db.delete(apiKeysTable).where(eq(apiKeysTable.id as any, id));
     res.json({ message: "API key deleted" });
   } catch (err) {
     req.log.error(err, "Error deleting API key");
@@ -90,3 +90,6 @@ router.delete("/:id", requireAuth, async (req, res) => {
 });
 
 export default router;
+
+
+

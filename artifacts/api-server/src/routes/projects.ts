@@ -11,12 +11,12 @@ router.get("/", requireAuth, async (req, res) => {
     const workspace = (req as any).workspace;
 
     const projects = await db.select().from(projectsTable)
-      .where(eq(projectsTable.workspaceId, workspace.id))
+      .where(eq(projectsTable.workspaceId as any, workspace.id))
       .orderBy(desc(projectsTable.createdAt));
 
     const projectsWithStats = await Promise.all(projects.map(async (project) => {
-      const scans = await db.select().from(scansTable).where(eq(scansTable.projectId, project.id));
-      const findings = await db.select().from(findingsTable).where(eq(findingsTable.projectId, project.id));
+      const scans = await db.select().from(scansTable).where(eq(scansTable.projectId as any, project.id));
+      const findings = await db.select().from(findingsTable).where(eq(findingsTable.projectId as any, project.id));
       const criticalCount = findings.filter(f => f.severity === "CRITICAL").length;
       const lastScan = scans.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
 
@@ -61,14 +61,14 @@ router.post("/", requireAuth, async (req, res) => {
       return;
     }
 
-    const [project] = await db.insert(projectsTable).values({
+    const [project] = (await db.insert(projectsTable).values({
       workspaceId: workspace.id,
       name,
       description: description || null,
       targetUrl: normalizedUrl,
       targetType: targetType || "WEB_APP",
       status: "active",
-    }).returning();
+    }).returning()) as any;
 
     res.status(201).json(project);
   } catch (err) {
@@ -80,10 +80,10 @@ router.post("/", requireAuth, async (req, res) => {
 router.get("/:id", requireAuth, async (req, res) => {
   try {
     const workspace = (req as any).workspace;
-    const { id } = req.params;
+    const id = req.params.id as string;
 
     const [project] = await db.select().from(projectsTable)
-      .where(and(eq(projectsTable.id, id), eq(projectsTable.workspaceId, workspace.id)))
+      .where(and(eq(projectsTable.id as any, id), eq(projectsTable.workspaceId as any, workspace.id)))
       .limit(1);
 
     if (!project) {
@@ -92,11 +92,11 @@ router.get("/:id", requireAuth, async (req, res) => {
     }
 
     const scans = await db.select().from(scansTable)
-      .where(eq(scansTable.projectId, id))
+      .where(eq(scansTable.projectId as any, id))
       .orderBy(desc(scansTable.createdAt));
 
     const findings = await db.select().from(findingsTable)
-      .where(eq(findingsTable.projectId, id))
+      .where(eq(findingsTable.projectId as any, id))
       .orderBy(desc(findingsTable.createdAt));
 
     res.json({
@@ -121,11 +121,11 @@ router.get("/:id", requireAuth, async (req, res) => {
 router.put("/:id", requireAuth, async (req, res) => {
   try {
     const workspace = (req as any).workspace;
-    const { id } = req.params;
+    const id = req.params.id as string;
     const { name, description, targetUrl, status } = req.body;
 
     const [project] = await db.select().from(projectsTable)
-      .where(and(eq(projectsTable.id, id), eq(projectsTable.workspaceId, workspace.id)))
+      .where(and(eq(projectsTable.id as any, id), eq(projectsTable.workspaceId as any, workspace.id)))
       .limit(1);
 
     if (!project) {
@@ -133,7 +133,7 @@ router.put("/:id", requireAuth, async (req, res) => {
       return;
     }
 
-    const [updated] = await db.update(projectsTable)
+    const [updated] = (await db.update(projectsTable)
       .set({
         name: name || project.name,
         description: description !== undefined ? description : project.description,
@@ -141,8 +141,8 @@ router.put("/:id", requireAuth, async (req, res) => {
         status: status || project.status,
         updatedAt: new Date(),
       })
-      .where(eq(projectsTable.id, id))
-      .returning();
+      .where(eq(projectsTable.id as any, id))
+      .returning()) as any;
 
     res.json(updated);
   } catch (err) {
@@ -154,10 +154,10 @@ router.put("/:id", requireAuth, async (req, res) => {
 router.delete("/:id", requireAuth, async (req, res) => {
   try {
     const workspace = (req as any).workspace;
-    const { id } = req.params;
+    const id = req.params.id as string;
 
     const [project] = await db.select().from(projectsTable)
-      .where(and(eq(projectsTable.id, id), eq(projectsTable.workspaceId, workspace.id)))
+      .where(and(eq(projectsTable.id as any, id), eq(projectsTable.workspaceId as any, workspace.id)))
       .limit(1);
 
     if (!project) {
@@ -165,7 +165,7 @@ router.delete("/:id", requireAuth, async (req, res) => {
       return;
     }
 
-    await db.delete(projectsTable).where(eq(projectsTable.id, id));
+    await db.delete(projectsTable).where(eq(projectsTable.id as any, id));
     res.json({ message: "Project deleted" });
   } catch (err) {
     req.log.error(err, "Error deleting project");
@@ -176,14 +176,14 @@ router.delete("/:id", requireAuth, async (req, res) => {
 router.post("/:id/scan", requireAuth, async (req, res) => {
   try {
     const workspace = (req as any).workspace;
-    const { id } = req.params;
+    const id = req.params.id as string;
     const { scanMode = "PASSIVE" } = req.body;
 
     const validModes = ["PASSIVE", "ACTIVE", "CONTINUOUS"];
     const resolvedMode = validModes.includes(scanMode) ? scanMode : "PASSIVE";
 
     const [project] = await db.select().from(projectsTable)
-      .where(and(eq(projectsTable.id, id), eq(projectsTable.workspaceId, workspace.id)))
+      .where(and(eq(projectsTable.id as any, id), eq(projectsTable.workspaceId as any, workspace.id)))
       .limit(1);
 
     if (!project) {
@@ -191,11 +191,11 @@ router.post("/:id/scan", requireAuth, async (req, res) => {
       return;
     }
 
-    const [scan] = await db.insert(scansTable).values({
+    const [scan] = (await db.insert(scansTable).values({
       projectId: id,
       status: "PENDING",
       scanMode: resolvedMode,
-    }).returning();
+    }).returning()) as any;
 
     // Run the real security scanner in the background
     runRealScan(scan.id, project.targetUrl, resolvedMode as any).catch(err => {
@@ -210,3 +210,6 @@ router.post("/:id/scan", requireAuth, async (req, res) => {
 });
 
 export default router;
+
+
+

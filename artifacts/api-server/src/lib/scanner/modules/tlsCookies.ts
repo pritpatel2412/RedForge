@@ -29,8 +29,11 @@ async function checkTLS(hostname: string, port = 443): Promise<TLSInfo> {
         if (cert && cert.valid_to) {
           const expiryDate = new Date(cert.valid_to);
           daysToExpiry = Math.floor((expiryDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-          issuer = cert.issuer?.O || cert.issuer?.CN || null;
-          selfSigned = cert.issuer?.CN === cert.subject?.CN || !cert.issuer?.O;
+          const issuerObj = cert.issuer?.O || cert.issuer?.CN;
+          issuer = Array.isArray(issuerObj) ? issuerObj[0] : (issuerObj || null);
+          const subCN = Array.isArray(cert.subject?.CN) ? cert.subject.CN[0] : cert.subject?.CN;
+          const issCN = Array.isArray(cert.issuer?.CN) ? cert.issuer.CN[0] : cert.issuer?.CN;
+          selfSigned = issCN === subCN || !cert.issuer?.O;
         }
 
         socket.destroy();
@@ -230,7 +233,11 @@ export async function runTLSCookiesModule(ctx: ScanContext): Promise<FindingInpu
 
   const cookieHeaders: string[] = [];
   if (resHeaders["set-cookie"]) {
-    cookieHeaders.push(resHeaders["set-cookie"]);
+    if (Array.isArray(resHeaders["set-cookie"])) {
+      cookieHeaders.push(...resHeaders["set-cookie"]);
+    } else {
+      cookieHeaders.push(resHeaders["set-cookie"]);
+    }
   }
 
   // Also collect cookies from auth pages

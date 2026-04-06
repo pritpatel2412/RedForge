@@ -30,11 +30,11 @@ router.patch("/settings", requireAuth, async (req, res) => {
     const workspace = (req as any).workspace;
     const { name, slackWebhookUrl } = req.body;
 
-    const [updated] = await db.update(workspacesTable).set({
+    const [updated] = (await db.update(workspacesTable).set({
       name: name || workspace.name,
       slackWebhookUrl: slackWebhookUrl !== undefined ? slackWebhookUrl : workspace.slackWebhookUrl,
       updatedAt: new Date(),
-    }).where(eq(workspacesTable.id, workspace.id)).returning();
+    }).where(eq(workspacesTable.id as any, workspace.id)).returning()) as any;
 
     res.json({
       id: updated.id,
@@ -54,3 +54,5 @@ router.patch("/settings", requireAuth, async (req, res) => {
 });
 
 export default router;
+
+

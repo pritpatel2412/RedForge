@@ -1,6 +1,10 @@
 import { Router } from "express";
 import { EventEmitter } from "events";
-import { db, scansTable, findingsTable, projectsTable, attackGraphsTable } from "@workspace/db";
+import { db, scansTable as scansTableRaw, findingsTable as findingsTableRaw, projectsTable as projectsTableRaw, attackGraphsTable as attackGraphsTableRaw } from "@workspace/db";
+const scansTable = scansTableRaw as any;
+const findingsTable = findingsTableRaw as any;
+const projectsTable = projectsTableRaw as any;
+const attackGraphsTable = attackGraphsTableRaw as any;
 import { eq, and } from "drizzle-orm";
 import { requireAuth } from "../lib/auth.js";
 import type { Response } from "express";
@@ -21,10 +25,10 @@ function getEmitter(scanId: string): EventEmitter {
 // ── Helpers ───────────────────────────────────────────────────────────────────
 async function resolveAccess(req: any, scanId: string) {
   const workspace = req.workspace;
-  const [scan] = await db.select().from(scansTable).where(eq(scansTable.id, scanId));
+  const [scan] = await db.select().from(scansTable).where(eq(scansTable.id as any, scanId));
   if (!scan) return null;
   const [project] = await db.select().from(projectsTable)
-    .where(and(eq(projectsTable.id, scan.projectId), eq(projectsTable.workspaceId, workspace.id)));
+    .where(and(eq(projectsTable.id as any, scan.projectId), eq(projectsTable.workspaceId as any, workspace.id)));
   if (!project) return null;
   return { scan, project };
 }
@@ -40,13 +44,13 @@ router.get("/:scanId", requireAuth, async (req, res) => {
   const access = await resolveAccess(req, scanId);
   if (!access) { res.status(404).json({ error: "Not found" }); return; }
 
-  let [graph] = await db.select().from(attackGraphsTable).where(eq(attackGraphsTable.scanId, scanId));
+  let [graph] = await db.select().from(attackGraphsTable).where(eq(attackGraphsTable.scanId as any, scanId));
 
   // Auto-fail stale GENERATING records
   if (graph && isStale(graph)) {
     await db.update(attackGraphsTable)
       .set({ status: "FAILED", errorMessage: "Generation timed out — please retry", updatedAt: new Date() })
-      .where(eq(attackGraphsTable.id, graph.id));
+      .where(eq(attackGraphsTable.id as any, graph.id));
     graph = { ...graph, status: "FAILED", errorMessage: "Generation timed out — please retry" };
   }
 
@@ -101,7 +105,7 @@ router.post("/:scanId/reset", requireAuth, async (req, res) => {
   const access = await resolveAccess(req, scanId);
   if (!access) { res.status(404).json({ error: "Not found" }); return; }
 
-  await db.delete(attackGraphsTable).where(eq(attackGraphsTable.scanId, scanId));
+  await db.delete(attackGraphsTable).where(eq(attackGraphsTable.scanId as any, scanId));
   res.json({ status: "NOT_GENERATED" });
 });
 
@@ -119,7 +123,7 @@ router.post("/:scanId/generate", requireAuth, async (req, res) => {
     res.status(400).json({ error: "Scan must be completed first" }); return;
   }
 
-  const [existing] = await db.select().from(attackGraphsTable).where(eq(attackGraphsTable.scanId, scanId));
+  const [existing] = await db.select().from(attackGraphsTable).where(eq(attackGraphsTable.scanId as any, scanId));
   if (existing?.status === "GENERATING" && !isStale(existing)) {
     res.json({ status: "GENERATING", message: "Already running" }); return;
   }
@@ -129,10 +133,10 @@ router.post("/:scanId/generate", requireAuth, async (req, res) => {
   if (existing) {
     await db.update(attackGraphsTable)
       .set({ status: "GENERATING", errorMessage: null, graphJson: null, updatedAt: new Date() })
-      .where(eq(attackGraphsTable.scanId, scanId));
+      .where(eq(attackGraphsTable.scanId as any, scanId));
     graphId = existing.id;
   } else {
-    const [rec] = await db.insert(attackGraphsTable).values({ scanId, status: "GENERATING" }).returning();
+    const [rec] = (await db.insert(attackGraphsTable).values({ scanId, status: "GENERATING" }).returning()) as any[];
     graphId = rec.id;
   }
 
@@ -146,7 +150,7 @@ router.post("/:scanId/generate", requireAuth, async (req, res) => {
   (async () => {
     try {
       step("Fetching all scan findings from database…", 1);
-      const findings = await db.select().from(findingsTable).where(eq(findingsTable.scanId, scanId));
+      const findings = await db.select().from(findingsTable).where(eq(findingsTable.scanId as any, scanId));
 
       step(`Analyzing ${findings.length} findings across ${new Set(findings.map(f => f.endpoint)).size} endpoints…`, 2);
 
@@ -372,7 +376,7 @@ Now generate the complete attack graph JSON with deep, technically accurate deta
             chainedRiskScore: riskScore,
             updatedAt: new Date(),
           })
-          .where(eq(attackGraphsTable.id, graphId));
+          .where(eq(attackGraphsTable.id as any, graphId));
 
         emitter.emit("done", {
           status: "COMPLETE",
@@ -396,7 +400,7 @@ Now generate the complete attack graph JSON with deep, technically accurate deta
       const msg = err instanceof Error ? err.message : String(err);
       await db.update(attackGraphsTable)
         .set({ status: "FAILED", errorMessage: msg, updatedAt: new Date() })
-        .where(eq(attackGraphsTable.id, graphId));
+        .where(eq(attackGraphsTable.id as any, graphId));
       emitter.emit("fail", { error: msg });
     } finally {
       setTimeout(() => emitters.delete(scanId), 30_000);
@@ -405,3 +409,4 @@ Now generate the complete attack graph JSON with deep, technically accurate deta
 });
 
 export default router;
+

@@ -52,7 +52,7 @@ router.post("/login", async (req, res) => {
       return;
     }
 
-    const [user] = await db.select().from(usersTable).where(eq(usersTable.email, email.toLowerCase())).limit(1);
+    const [user] = await db.select().from(usersTable).where(eq(usersTable.email as any, email.toLowerCase())).limit(1);
     if (!user) {
       res.status(401).json({ error: "Invalid credentials" });
       return;
@@ -71,14 +71,14 @@ router.post("/login", async (req, res) => {
     const workspaceId = user.currentWorkspaceId;
     let workspace = null;
     if (workspaceId) {
-      const [ws] = await db.select().from(workspacesTable).where(eq(workspacesTable.id, workspaceId)).limit(1);
+      const [ws] = await db.select().from(workspacesTable).where(eq(workspacesTable.id as any, workspaceId)).limit(1);
       workspace = ws || null;
     }
 
     // Auto-promote admin emails
     const adminEmails = (process.env.ADMIN_EMAILS || "").split(",").map(e => e.trim().toLowerCase()).filter(Boolean);
     if (adminEmails.includes(user.email) && user.role !== "admin") {
-      await db.update(usersTable).set({ role: "admin", updatedAt: new Date() }).where(eq(usersTable.id, user.id));
+      await db.update(usersTable).set({ role: "admin", updatedAt: new Date() }).where(eq(usersTable.id as any, user.id));
       user.role = "admin";
     }
 
@@ -122,7 +122,7 @@ router.post("/logout", async (req, res) => {
   try {
     const token = req.cookies?.session;
     if (token) {
-      await db.delete(sessionsTable).where(eq(sessionsTable.token, token));
+      await db.delete(sessionsTable).where(eq(sessionsTable.token as any, token));
     }
     res.clearCookie("session");
     res.json({ message: "Logged out" });
@@ -140,7 +140,7 @@ router.post("/register", async (req, res) => {
       return;
     }
 
-    const existing = await db.select().from(usersTable).where(eq(usersTable.email, email.toLowerCase())).limit(1);
+    const existing = await db.select().from(usersTable).where(eq(usersTable.email as any, email.toLowerCase())).limit(1);
     if (existing.length > 0) {
       res.status(400).json({ error: "Email already registered" });
       return;
@@ -151,25 +151,25 @@ router.post("/register", async (req, res) => {
 
     const trialEndsAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
 
-    const [workspace] = await db.insert(workspacesTable).values({
+    const [workspace] = (await db.insert(workspacesTable).values({
       name: workspaceName || `${name}'s Workspace`,
       slug,
       plan: "FREE",
       trialEndsAt,
-    }).returning();
+    }).returning()) as any;
 
     // Auto-promote admin emails
     const adminEmails = (process.env.ADMIN_EMAILS || "").split(",").map(e => e.trim().toLowerCase()).filter(Boolean);
     const userRole = adminEmails.includes(email.toLowerCase()) ? "admin" : "owner";
 
-    const [user] = await db.insert(usersTable).values({
+    const [user] = (await db.insert(usersTable).values({
       email: email.toLowerCase(),
       passwordHash,
       name,
       role: userRole,
       provider: "email",
       currentWorkspaceId: workspace.id,
-    }).returning();
+    }).returning()) as any;
 
     await db.insert(workspaceMembersTable).values({
       workspaceId: workspace.id,
@@ -255,20 +255,20 @@ async function findOrCreateOAuthUser(
 ): Promise<{ userId: string; workspaceId: string | null }> {
   const lowerEmail = email.toLowerCase();
 
-  const [existing] = await db.select().from(usersTable).where(eq(usersTable.email, lowerEmail)).limit(1);
+  const [existing] = await db.select().from(usersTable).where(eq(usersTable.email as any, lowerEmail)).limit(1);
   if (existing) {
     return { userId: existing.id, workspaceId: existing.currentWorkspaceId };
   }
 
   const slug = `${name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${Date.now().toString(36)}`;
-  const [workspace] = await db.insert(workspacesTable).values({
+  const [workspace] = (await db.insert(workspacesTable).values({
     name: `${name}'s Workspace`,
     slug,
     plan: "FREE",
-  }).returning();
+  }).returning()) as any;
 
   const dummyHash = await bcrypt.hash(randomUUID(), 4);
-  const [user] = await db.insert(usersTable).values({
+  const [user] = (await db.insert(usersTable).values({
     email: lowerEmail,
     passwordHash: dummyHash,
     name,
@@ -276,7 +276,7 @@ async function findOrCreateOAuthUser(
     role: "owner",
     provider,
     currentWorkspaceId: workspace.id,
-  }).returning();
+  }).returning()) as any;
 
   await db.insert(workspaceMembersTable).values({
     workspaceId: workspace.id,
@@ -433,7 +433,7 @@ router.post("/forgot-password", async (req, res) => {
       return;
     }
 
-    const [user] = await db.select().from(usersTable).where(eq(usersTable.email, email.toLowerCase())).limit(1);
+    const [user] = await db.select().from(usersTable).where(eq(usersTable.email as any, email.toLowerCase())).limit(1);
     if (!user) {
       // Return success even if user not found to prevent email enumeration
       res.json({ message: "If an account exists, a reset link has been sent" });
@@ -445,7 +445,7 @@ router.post("/forgot-password", async (req, res) => {
 
     await db.update(usersTable)
       .set({ resetPasswordToken: token, resetPasswordExpiresAt: expiresAt })
-      .where(eq(usersTable.id, user.id));
+      .where(eq(usersTable.id as any, user.id));
 
     const base = getBaseUrl(req);
     const resetLink = `${base}/auth/reset-password?token=${token}`;
@@ -469,7 +469,7 @@ router.post("/reset-password", async (req, res) => {
       return;
     }
 
-    const [user] = await db.select().from(usersTable).where(eq(usersTable.resetPasswordToken, token)).limit(1);
+    const [user] = await db.select().from(usersTable).where(eq(usersTable.resetPasswordToken as any, token)).limit(1);
     
     if (!user || !user.resetPasswordExpiresAt || user.resetPasswordExpiresAt < new Date()) {
       res.status(400).json({ error: "Invalid or expired reset token" });
@@ -485,10 +485,10 @@ router.post("/reset-password", async (req, res) => {
         resetPasswordExpiresAt: null,
         updatedAt: new Date()
       })
-      .where(eq(usersTable.id, user.id));
+      .where(eq(usersTable.id as any, user.id));
       
     // Delete all existing sessions for security
-    await db.delete(sessionsTable).where(eq(sessionsTable.userId, user.id));
+    await db.delete(sessionsTable).where(eq(sessionsTable.userId as any, user.id));
 
     res.json({ message: "Password updated successfully!" });
   } catch (err) {
@@ -498,3 +498,5 @@ router.post("/reset-password", async (req, res) => {
 });
 
 export default router;
+
+

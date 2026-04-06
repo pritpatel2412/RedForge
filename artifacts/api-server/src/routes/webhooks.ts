@@ -1,5 +1,6 @@
 import { Router } from "express";
-import { db, workspacesTable } from "@workspace/db";
+import { db, workspacesTable as workspacesTableRaw } from "@workspace/db";
+const workspacesTable = workspacesTableRaw as any;
 import { eq } from "drizzle-orm";
 import type { Request, Response } from "express";
 
@@ -16,7 +17,7 @@ router.post("/stripe", async (req: Request, res: Response) => {
 
   try {
     const { default: Stripe } = await import("stripe");
-    const stripe = new Stripe(stripeSecretKey, { apiVersion: "2024-12-18.acacia" });
+    const stripe = new Stripe(stripeSecretKey, { apiVersion: "2024-12-18.acacia" as any });
 
     const sig = req.headers["stripe-signature"] as string;
     let event;
@@ -39,7 +40,7 @@ router.post("/stripe", async (req: Request, res: Response) => {
             stripeCustomerId: session.customer,
             stripeSubscriptionId: session.subscription,
             trialEndsAt: null,
-          }).where(eq(workspacesTable.id, workspaceId));
+          }).where(eq(workspacesTable.id as any, workspaceId));
         }
         break;
       }
@@ -48,13 +49,13 @@ router.post("/stripe", async (req: Request, res: Response) => {
         const sub = event.data.object as any;
         const customerId = sub.customer;
         const [workspace] = await db.select().from(workspacesTable)
-          .where(eq(workspacesTable.stripeCustomerId, customerId)).limit(1);
+          .where(eq(workspacesTable.stripeCustomerId as any, customerId)).limit(1);
         if (workspace) {
           const plan = sub.status === "active" ? "PRO" : "FREE";
           await db.update(workspacesTable).set({
             plan,
             stripeSubscriptionId: sub.id,
-          }).where(eq(workspacesTable.id, workspace.id));
+          }).where(eq(workspacesTable.id as any, workspace.id));
         }
         break;
       }
@@ -63,12 +64,12 @@ router.post("/stripe", async (req: Request, res: Response) => {
         const sub = event.data.object as any;
         const customerId = sub.customer;
         const [workspace] = await db.select().from(workspacesTable)
-          .where(eq(workspacesTable.stripeCustomerId, customerId)).limit(1);
+          .where(eq(workspacesTable.stripeCustomerId as any, customerId)).limit(1);
         if (workspace) {
           await db.update(workspacesTable).set({
             plan: "FREE",
             stripeSubscriptionId: null,
-          }).where(eq(workspacesTable.id, workspace.id));
+          }).where(eq(workspacesTable.id as any, workspace.id));
         }
         break;
       }
@@ -91,3 +92,4 @@ router.post("/stripe", async (req: Request, res: Response) => {
 });
 
 export default router;
+

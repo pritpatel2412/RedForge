@@ -1,5 +1,6 @@
 import { Router } from "express";
-import { db, projectsTable, scansTable, findingsTable, chatConversationsTable, chatMessagesTable } from "@workspace/db";
+import { db as dbRaw, projectsTable, scansTable, findingsTable, chatConversationsTable, chatMessagesTable } from "@workspace/db";
+const db = dbRaw as any;
 import { eq, desc, asc, and } from "drizzle-orm";
 import { requireAuth } from "../lib/auth.js";
 
@@ -11,10 +12,10 @@ const NIM_MODEL = process.env.NVIDIA_MODEL || "meta/llama-3.1-70b-instruct";
 // ── Helper: build system prompt ───────────────────────────────────────────────
 async function buildSystemPrompt(workspace: any): Promise<string> {
   const projects = await db.select().from(projectsTable)
-    .where(eq(projectsTable.workspaceId, workspace.id));
+    .where(eq(projectsTable.workspaceId as any, workspace.id));
 
-  const projectIds = projects.map(p => p.id);
-  const projectMap = Object.fromEntries(projects.map(p => [p.id, p.name]));
+  const projectIds = projects.map((p: any) => p.id);
+  const projectMap = Object.fromEntries(projects.map((p: any) => [p.id, p.name]));
 
   let allFindings: any[] = [];
   let recentScans: any[] = [];
@@ -22,18 +23,18 @@ async function buildSystemPrompt(workspace: any): Promise<string> {
   if (projectIds.length > 0) {
     const findings = await db.select().from(findingsTable).orderBy(desc(findingsTable.createdAt));
     allFindings = findings
-      .filter(f => projectIds.includes(f.projectId))
-      .map(f => ({ ...f, projectName: projectMap[f.projectId] || "Unknown" }));
+      .filter((f: any) => projectIds.includes(f.projectId))
+      .map((f: any) => ({ ...f, projectName: projectMap[f.projectId] || "Unknown" }));
     const scans = await db.select().from(scansTable).orderBy(desc(scansTable.createdAt));
-    recentScans = scans.filter(s => projectIds.includes(s.projectId)).slice(0, 10);
+    recentScans = scans.filter((s: any) => projectIds.includes(s.projectId)).slice(0, 10);
   }
 
-  const criticalFindings = allFindings.filter(f => f.severity === "CRITICAL");
-  const highFindings     = allFindings.filter(f => f.severity === "HIGH");
-  const mediumFindings   = allFindings.filter(f => f.severity === "MEDIUM");
-  const lowFindings      = allFindings.filter(f => f.severity === "LOW");
-  const openFindings     = allFindings.filter(f => f.status === "OPEN" || f.status === "IN_PROGRESS");
-  const fixedFindings    = allFindings.filter(f => f.status === "FIXED");
+  const criticalFindings = allFindings.filter((f: any) => f.severity === "CRITICAL");
+  const highFindings     = allFindings.filter((f: any) => f.severity === "HIGH");
+  const mediumFindings   = allFindings.filter((f: any) => f.severity === "MEDIUM");
+  const lowFindings      = allFindings.filter((f: any) => f.severity === "LOW");
+  const openFindings     = allFindings.filter((f: any) => f.status === "OPEN" || f.status === "IN_PROGRESS");
+  const fixedFindings    = allFindings.filter((f: any) => f.status === "FIXED");
   const fixRate          = allFindings.length > 0 ? Math.round((fixedFindings.length / allFindings.length) * 100) : 0;
 
   const riskLevel = criticalFindings.length > 0 ? "🔴 CRITICAL RISK"
@@ -42,20 +43,20 @@ async function buildSystemPrompt(workspace: any): Promise<string> {
     : allFindings.length > 0    ? "🟢 LOW RISK"
     : "⚪ NOT ASSESSED";
 
-  const findingsContext = allFindings.slice(0, 40).map(f =>
+  const findingsContext = allFindings.slice(0, 40).map((f: any) =>
     `• [${f.severity}] ${f.title}\n  Endpoint: ${f.endpoint}\n  CVSS: ${f.cvss || "N/A"} | OWASP: ${f.owasp || "N/A"} | CWE: ${f.cwe || "N/A"}\n  Status: ${f.status} | Project: ${f.projectName}\n  Description: ${(f.description || "").slice(0, 200)}`
   ).join("\n\n");
 
-  const projectsContext = projects.map(p =>
+  const projectsContext = projects.map((p: any) =>
     `• ${p.name} → ${p.targetUrl} (${p.targetType})`
   ).join("\n");
 
-  const scansContext = recentScans.slice(0, 5).map(s =>
+  const scansContext = recentScans.slice(0, 5).map((s: any) =>
     `• Scan ${s.id.slice(0, 8)} | Status: ${s.status} | Findings: ${s.findingsCount || 0} (${s.criticalCount || 0} critical)`
   ).join("\n");
 
-  const targetUrls = projects.map(p => p.targetUrl).join(", ") || "Unknown Target";
-  const scopes = projects.map(p => p.targetType).join(", ") || "Web Application";
+  const targetUrls = projects.map((p: any) => p.targetUrl).join(", ") || "Unknown Target";
+  const scopes = projects.map((p: any) => p.targetType).join(", ") || "Web Application";
 
   return `# RedForge Elite — Security Assessment Prompt
 # For authorized penetration testing only. Use within defined scope.
@@ -497,7 +498,7 @@ router.get("/conversations", requireAuth, async (req, res) => {
   const workspace = (req as any).workspace;
   const conversations = await db.select()
     .from(chatConversationsTable)
-    .where(eq(chatConversationsTable.workspaceId, workspace.id))
+    .where(eq(chatConversationsTable.workspaceId as any, workspace.id))
     .orderBy(desc(chatConversationsTable.updatedAt));
   res.json(conversations);
 });
@@ -506,10 +507,10 @@ router.get("/conversations", requireAuth, async (req, res) => {
 router.post("/conversations", requireAuth, async (req, res) => {
   const workspace = (req as any).workspace;
   const { title } = req.body;
-  const [conv] = await db.insert(chatConversationsTable).values({
+  const [conv] = (await db.insert(chatConversationsTable).values({
     workspaceId: workspace.id,
     title: (title || "New conversation").slice(0, 500),
-  }).returning();
+  }).returning()) as any;
   res.json(conv);
 });
 
@@ -521,7 +522,7 @@ router.patch("/conversations/:id", requireAuth, async (req, res) => {
   if (!title) { res.status(400).json({ error: "title required" }); return; }
   await db.update(chatConversationsTable)
     .set({ title: title.slice(0, 500), updatedAt: new Date() })
-    .where(and(eq(chatConversationsTable.id, id), eq(chatConversationsTable.workspaceId, workspace.id)));
+    .where(and(eq(chatConversationsTable.id as any, id), eq(chatConversationsTable.workspaceId as any, workspace.id)));
   res.json({ ok: true });
 });
 
@@ -530,7 +531,7 @@ router.delete("/conversations/:id", requireAuth, async (req, res) => {
   const workspace = (req as any).workspace;
   const id = req.params.id as string;
   await db.delete(chatConversationsTable)
-    .where(and(eq(chatConversationsTable.id, id), eq(chatConversationsTable.workspaceId, workspace.id)));
+    .where(and(eq(chatConversationsTable.id as any, id), eq(chatConversationsTable.workspaceId as any, workspace.id)));
   res.json({ ok: true });
 });
 
@@ -539,10 +540,10 @@ router.get("/conversations/:id/messages", requireAuth, async (req, res) => {
   const workspace = (req as any).workspace;
   const id = req.params.id as string;
   const [conv] = await db.select().from(chatConversationsTable)
-    .where(and(eq(chatConversationsTable.id, id), eq(chatConversationsTable.workspaceId, workspace.id)));
+    .where(and(eq(chatConversationsTable.id as any, id), eq(chatConversationsTable.workspaceId as any, workspace.id)));
   if (!conv) { res.status(404).json({ error: "Not found" }); return; }
   const messages = await db.select().from(chatMessagesTable)
-    .where(eq(chatMessagesTable.conversationId, id))
+    .where(eq(chatMessagesTable.conversationId as any, id))
     .orderBy(asc(chatMessagesTable.createdAt));
   res.json(messages);
 });
@@ -553,7 +554,7 @@ router.post("/conversations/:id/messages", requireAuth, async (req, res) => {
   const id = req.params.id as string;
   const { messages: msgs } = req.body;
   const [conv] = await db.select().from(chatConversationsTable)
-    .where(and(eq(chatConversationsTable.id, id), eq(chatConversationsTable.workspaceId, workspace.id)));
+    .where(and(eq(chatConversationsTable.id as any, id), eq(chatConversationsTable.workspaceId as any, workspace.id)));
   if (!conv) { res.status(404).json({ error: "Not found" }); return; }
   if (Array.isArray(msgs) && msgs.length > 0) {
     await db.insert(chatMessagesTable).values(
@@ -567,7 +568,7 @@ router.post("/conversations/:id/messages", requireAuth, async (req, res) => {
     );
     await db.update(chatConversationsTable)
       .set({ updatedAt: new Date() })
-      .where(eq(chatConversationsTable.id, id));
+      .where(eq(chatConversationsTable.id as any, id));
   }
   res.json({ ok: true });
 });
@@ -578,18 +579,18 @@ router.delete("/conversations/:id/messages/tail", requireAuth, async (req, res) 
   const id = req.params.id as string;
   const count = Math.max(1, parseInt((req.query.count as string) || "1", 10));
   const [conv] = await db.select().from(chatConversationsTable)
-    .where(and(eq(chatConversationsTable.id, id), eq(chatConversationsTable.workspaceId, workspace.id)));
+    .where(and(eq(chatConversationsTable.id as any, id), eq(chatConversationsTable.workspaceId as any, workspace.id)));
   if (!conv) { res.status(404).json({ error: "Not found" }); return; }
 
   const all = await db.select({ id: chatMessagesTable.id })
     .from(chatMessagesTable)
-    .where(eq(chatMessagesTable.conversationId, id))
+    .where(eq(chatMessagesTable.conversationId as any, id))
     .orderBy(asc(chatMessagesTable.createdAt));
 
-  const toDelete = all.slice(-count).map(m => m.id);
+  const toDelete = all.slice(-count).map((m: any) => m.id);
   if (toDelete.length > 0) {
     for (const mid of toDelete) {
-      await db.delete(chatMessagesTable).where(eq(chatMessagesTable.id, mid));
+      await db.delete(chatMessagesTable).where(eq(chatMessagesTable.id as any, mid));
     }
   }
   res.json({ ok: true, deleted: toDelete.length });
@@ -747,3 +748,5 @@ router.post("/", requireAuth, async (req, res) => {
 });
 
 export default router;
+
+

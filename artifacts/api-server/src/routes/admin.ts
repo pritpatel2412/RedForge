@@ -23,15 +23,15 @@ router.get("/stats", async (req, res) => {
   try {
     const [totalUsers] = await db.select({ count: count() }).from(usersTable);
     const [totalWorkspaces] = await db.select({ count: count() }).from(workspacesTable);
-    const [proWorkspaces] = await db.select({ count: count() }).from(workspacesTable).where(eq(workspacesTable.plan, "PRO"));
-    const [enterpriseWorkspaces] = await db.select({ count: count() }).from(workspacesTable).where(eq(workspacesTable.plan, "ENTERPRISE"));
-    const [freeWorkspaces] = await db.select({ count: count() }).from(workspacesTable).where(eq(workspacesTable.plan, "FREE"));
+    const [proWorkspaces] = await db.select({ count: count() }).from(workspacesTable).where(eq(workspacesTable.plan as any, "PRO"));
+    const [enterpriseWorkspaces] = await db.select({ count: count() }).from(workspacesTable).where(eq(workspacesTable.plan as any, "ENTERPRISE"));
+    const [freeWorkspaces] = await db.select({ count: count() }).from(workspacesTable).where(eq(workspacesTable.plan as any, "FREE"));
     const now = new Date();
-    const [activeTrials] = await db.select({ count: count() }).from(workspacesTable).where(and(eq(workspacesTable.plan, "FREE"), gte(workspacesTable.trialEndsAt, now)));
-    const [expiredTrials] = await db.select({ count: count() }).from(workspacesTable).where(and(eq(workspacesTable.plan, "FREE"), lte(workspacesTable.trialEndsAt, now), isNotNull(workspacesTable.trialEndsAt)));
+    const [activeTrials] = await db.select({ count: count() }).from(workspacesTable).where(and(eq(workspacesTable.plan as any, "FREE"), gte(workspacesTable.trialEndsAt, now)));
+    const [expiredTrials] = await db.select({ count: count() }).from(workspacesTable).where(and(eq(workspacesTable.plan as any, "FREE"), lte(workspacesTable.trialEndsAt, now), isNotNull(workspacesTable.trialEndsAt)));
     const [totalActivity] = await db.select({ count: count() }).from(userActivityLogsTable);
     const [totalEmails] = await db.select({ count: count() }).from(emailLogsTable);
-    const [sentEmails] = await db.select({ count: count() }).from(emailLogsTable).where(eq(emailLogsTable.status, "sent"));
+    const [sentEmails] = await db.select({ count: count() }).from(emailLogsTable).where(eq(emailLogsTable.status as any, "sent"));
 
     // Activity over last 30 days grouped by day
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
@@ -104,7 +104,7 @@ router.get("/users", async (req, res) => {
       workspace: workspacesTable,
     })
       .from(usersTable)
-      .leftJoin(workspacesTable, eq(usersTable.currentWorkspaceId, workspacesTable.id))
+      .leftJoin(workspacesTable, eq(usersTable.currentWorkspaceId as any, workspacesTable.id))
       .orderBy(desc(usersTable.createdAt))
       .limit(limit)
       .offset(offset);
@@ -156,7 +156,7 @@ router.get("/users", async (req, res) => {
 
 router.patch("/users/:id/plan", async (req, res) => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const { plan, trialDays } = req.body;
     const admin = (req as any).user;
 
@@ -165,7 +165,7 @@ router.patch("/users/:id/plan", async (req, res) => {
       return;
     }
 
-    const [user] = await db.select().from(usersTable).where(eq(usersTable.id, id)).limit(1);
+    const [user] = await db.select().from(usersTable).where(eq(usersTable.id as any, id)).limit(1);
     if (!user) { res.status(404).json({ error: "User not found" }); return; }
 
     const workspaceId = user.currentWorkspaceId;
@@ -177,14 +177,14 @@ router.patch("/users/:id/plan", async (req, res) => {
       plan,
       trialEndsAt: trialEndsAt,
       updatedAt: new Date(),
-    }).where(eq(workspacesTable.id, workspaceId));
+    }).where(eq(workspacesTable.id as any, workspaceId));
 
     // Set admin role if requested
     if (req.body.setAdmin !== undefined) {
       await db.update(usersTable).set({
         role: req.body.setAdmin ? "admin" : "user",
         updatedAt: new Date(),
-      }).where(eq(usersTable.id, id));
+      }).where(eq(usersTable.id as any, id));
     }
 
     await logActivity({ userId: admin.id, workspaceId: admin.currentWorkspaceId, action: "admin.plan_change", metadata: { targetUserId: id, newPlan: plan }, req });
@@ -201,7 +201,7 @@ router.patch("/users/:id/plan", async (req, res) => {
 
 router.patch("/users/:id/role", async (req, res) => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const { role } = req.body;
     const admin = (req as any).user;
 
@@ -210,7 +210,7 @@ router.patch("/users/:id/role", async (req, res) => {
       return;
     }
 
-    await db.update(usersTable).set({ role, updatedAt: new Date() }).where(eq(usersTable.id, id));
+    await db.update(usersTable).set({ role, updatedAt: new Date() }).where(eq(usersTable.id as any, id));
     await logActivity({ userId: admin.id, action: "admin.role_change", metadata: { targetUserId: id, newRole: role }, req });
 
     res.json({ success: true });
@@ -221,7 +221,7 @@ router.patch("/users/:id/role", async (req, res) => {
 
 router.delete("/users/:id", async (req, res) => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const admin = (req as any).user;
 
     if (id === admin.id) {
@@ -229,10 +229,10 @@ router.delete("/users/:id", async (req, res) => {
       return;
     }
 
-    const [user] = await db.select().from(usersTable).where(eq(usersTable.id, id)).limit(1);
+    const [user] = await db.select().from(usersTable).where(eq(usersTable.id as any, id)).limit(1);
     if (!user) { res.status(404).json({ error: "User not found" }); return; }
 
-    await db.delete(usersTable).where(eq(usersTable.id, id));
+    await db.delete(usersTable).where(eq(usersTable.id as any, id));
     await logActivity({ userId: admin.id, action: "admin.user_delete", metadata: { targetEmail: user.email }, req });
 
     res.json({ success: true });
@@ -266,7 +266,7 @@ router.post("/coupons", async (req, res) => {
       return;
     }
 
-    const [coupon] = await db.insert(couponsTable).values({
+    const [coupon] = (await db.insert(couponsTable).values({
       code: code.toUpperCase().trim(),
       description,
       type,
@@ -276,7 +276,7 @@ router.post("/coupons", async (req, res) => {
       maxUses: maxUses || null,
       validUntil: validUntil ? new Date(validUntil) : null,
       createdBy: admin.id,
-    }).returning();
+    }).returning()) as any;
 
     await logActivity({ userId: admin.id, action: "admin.coupon_create", metadata: { code: coupon.code }, req });
 
@@ -292,7 +292,7 @@ router.post("/coupons", async (req, res) => {
 
 router.patch("/coupons/:id", async (req, res) => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const { isActive, validUntil, maxUses, description } = req.body;
     const admin = (req as any).user;
 
@@ -302,7 +302,7 @@ router.patch("/coupons/:id", async (req, res) => {
       ...(maxUses !== undefined ? { maxUses } : {}),
       ...(description !== undefined ? { description } : {}),
       updatedAt: new Date(),
-    }).where(eq(couponsTable.id, id));
+    }).where(eq(couponsTable.id as any, id));
 
     await logActivity({ userId: admin.id, action: "admin.coupon_update", metadata: { couponId: id }, req });
     res.json({ success: true });
@@ -313,9 +313,9 @@ router.patch("/coupons/:id", async (req, res) => {
 
 router.delete("/coupons/:id", async (req, res) => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const admin = (req as any).user;
-    await db.delete(couponsTable).where(eq(couponsTable.id, id));
+    await db.delete(couponsTable).where(eq(couponsTable.id as any, id));
     await logActivity({ userId: admin.id, action: "admin.coupon_delete", metadata: { couponId: id }, req });
     res.json({ success: true });
   } catch (err) {
@@ -332,7 +332,7 @@ router.get("/activity", async (req, res) => {
     const offset = (page - 1) * limit;
     const action = req.query.action as string;
 
-    const whereClause = action ? eq(userActivityLogsTable.action, action) : undefined;
+    const whereClause = action ? eq(userActivityLogsTable.action as any, action) : undefined;
 
     const logs = await db
       .select({
@@ -340,7 +340,7 @@ router.get("/activity", async (req, res) => {
         user: { name: usersTable.name, email: usersTable.email },
       })
       .from(userActivityLogsTable)
-      .leftJoin(usersTable, eq(userActivityLogsTable.userId, usersTable.id))
+      .leftJoin(usersTable, eq(userActivityLogsTable.userId as any, usersTable.id))
       .where(whereClause)
       .orderBy(desc(userActivityLogsTable.createdAt))
       .limit(limit)
@@ -391,3 +391,6 @@ router.get("/emails", async (req, res) => {
 });
 
 export default router;
+
+
+

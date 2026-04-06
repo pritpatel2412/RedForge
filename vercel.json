@@ -1,14 +1,9 @@
 {
   "version": 2,
-  "functions": {
-    "artifacts/api-server/dist/index.mjs": {
-      "runtime": "nodejs20.x"
-    }
-  },
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "artifacts/api-server/dist/index.mjs"
+      "dest": "api/index.ts"
     },
     {
       "handle": "filesystem"

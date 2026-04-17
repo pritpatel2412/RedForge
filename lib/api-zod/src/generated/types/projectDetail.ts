@@ -5,8 +5,8 @@
  * RedForge API specification
  * OpenAPI spec version: 0.1.0
  */
-import type { FindingWithProject } from "./findingWithProject";
-import type { ScanSummary } from "./scanSummary";
+import type { FindingWithProject } from "./findingWithProject.js";
+import type { ScanSummary } from "./scanSummary.js";
 
 export interface ProjectDetail {
   id: string;

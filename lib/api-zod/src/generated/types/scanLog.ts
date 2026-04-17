@@ -5,7 +5,7 @@
  * RedForge API specification
  * OpenAPI spec version: 0.1.0
  */
-import type { ScanLogLevel } from "./scanLogLevel";
+import type { ScanLogLevel } from "./scanLogLevel.js";
 
 export interface ScanLog {
   id: string;

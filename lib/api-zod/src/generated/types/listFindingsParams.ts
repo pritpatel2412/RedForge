@@ -5,8 +5,8 @@
  * RedForge API specification
  * OpenAPI spec version: 0.1.0
  */
-import type { ListFindingsSeverity } from "./listFindingsSeverity";
-import type { ListFindingsStatus } from "./listFindingsStatus";
+import type { ListFindingsSeverity } from "./listFindingsSeverity.js";
+import type { ListFindingsStatus } from "./listFindingsStatus.js";
 
 export type ListFindingsParams = {
   severity?: ListFindingsSeverity;

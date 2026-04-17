@@ -5,7 +5,7 @@
  * RedForge API specification
  * OpenAPI spec version: 0.1.0
  */
-import type { UpdateFindingRequestStatus } from "./updateFindingRequestStatus";
+import type { UpdateFindingRequestStatus } from "./updateFindingRequestStatus.js";
 
 export interface UpdateFindingRequest {
   status?: UpdateFindingRequestStatus;

@@ -5,8 +5,8 @@
  * RedForge API specification
  * OpenAPI spec version: 0.1.0
  */
-import type { FindingWithProjectSeverity } from "./findingWithProjectSeverity";
-import type { FindingWithProjectStatus } from "./findingWithProjectStatus";
+import type { FindingWithProjectSeverity } from "./findingWithProjectSeverity.js";
+import type { FindingWithProjectStatus } from "./findingWithProjectStatus.js";
 
 export interface FindingWithProject {
   id: string;

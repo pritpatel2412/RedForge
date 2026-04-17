@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "codegen": "orval --config ./orval.config.ts"
+    "codegen": "orval --config ./orval.config.ts && node ../../scripts/fix-api-zod-relative-imports.mjs"
   },
   "devDependencies": {
     "orval": "^8.5.2"

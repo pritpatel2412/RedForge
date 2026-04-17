@@ -5,7 +5,7 @@
  * RedForge API specification
  * OpenAPI spec version: 0.1.0
  */
-import type { CreateCheckoutRequestPlan } from "./createCheckoutRequestPlan";
+import type { CreateCheckoutRequestPlan } from "./createCheckoutRequestPlan.js";
 
 export interface CreateCheckoutRequest {
   plan: CreateCheckoutRequestPlan;

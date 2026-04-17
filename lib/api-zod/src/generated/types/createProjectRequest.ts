@@ -5,7 +5,7 @@
  * RedForge API specification
  * OpenAPI spec version: 0.1.0
  */
-import type { CreateProjectRequestTargetType } from "./createProjectRequestTargetType";
+import type { CreateProjectRequestTargetType } from "./createProjectRequestTargetType.js";
 
 export interface CreateProjectRequest {
   name: string;

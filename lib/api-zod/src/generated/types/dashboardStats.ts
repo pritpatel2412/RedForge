@@ -5,8 +5,8 @@
  * RedForge API specification
  * OpenAPI spec version: 0.1.0
  */
-import type { FindingWithProject } from "./findingWithProject";
-import type { ScanWithProject } from "./scanWithProject";
+import type { FindingWithProject } from "./findingWithProject.js";
+import type { ScanWithProject } from "./scanWithProject.js";
 
 export interface DashboardStats {
   totalProjects: number;

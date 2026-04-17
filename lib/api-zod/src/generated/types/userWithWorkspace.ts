@@ -5,8 +5,8 @@
  * RedForge API specification
  * OpenAPI spec version: 0.1.0
  */
-import type { User } from "./user";
-import type { Workspace } from "./workspace";
+import type { User } from "./user.js";
+import type { Workspace } from "./workspace.js";
 
 export interface UserWithWorkspace {
   user: User;

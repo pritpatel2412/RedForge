@@ -5,7 +5,7 @@
  * RedForge API specification
  * OpenAPI spec version: 0.1.0
  */
-import type { ScanStatus } from "./scanStatus";
+import type { ScanStatus } from "./scanStatus.js";
 
 export interface Scan {
   id: string;

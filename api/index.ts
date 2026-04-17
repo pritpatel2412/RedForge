@@ -1,17 +1,25 @@
-import { seedAdminAccount } from "../artifacts/api-server/src/lib/seed";
-import app from "../artifacts/api-server/src/app";
-
-// Initialize the database seed on first run
+// Initialize seed only once per warm runtime.
 let seeded = false;
 
 const handler = async (req: any, res: any) => {
-  if (!seeded) {
-    // Ensure seeding is awaited in the serverless cold-start
-    await seedAdminAccount();
-    seeded = true;
+  try {
+    if (!seeded) {
+      const { seedAdminAccount } = await import("../artifacts/api-server/src/lib/seed");
+      await seedAdminAccount();
+      seeded = true;
+    }
+
+    const { default: app } = await import("../artifacts/api-server/src/app");
+    return (app as any)(req, res);
+  } catch (err: any) {
+    // Avoid FUNCTION_INVOCATION_FAILED without context.
+    console.error("API bootstrap failure:", err);
+    return res.status(500).json({
+      error: "API bootstrap failure",
+      message: "Check DATABASE_URL and other required server environment variables.",
+      detail: err?.message || "Unknown bootstrap error",
+    });
   }
-  // Cast Express app to any to allow direct call as a request handler
-  return (app as any)(req, res);
 };
 
 export default handler;

@@ -427,7 +427,7 @@ export default function AuthPage({ initialMode }: { initialMode: Mode }) {
         <div className="bg-dot-grid absolute inset-0 opacity-20" />
 
         {/* Logo */}
-        <div className="relative z-10">
+        <div className="relative z-10 pb-6">
           <Link href="/" className="flex items-center gap-2.5 group">
             <img src="/logo.png" alt="RedForge" className="w-9 h-9 object-contain" />
             <span className="font-bold text-lg tracking-tight text-white">RedForge</span>
@@ -493,7 +493,7 @@ export default function AuthPage({ initialMode }: { initialMode: Mode }) {
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.55, duration: 0.4 }}
-          className="relative z-10"
+          className="relative z-10 mt-8"
         >
           {/* Card */}
           <div
@@ -501,7 +501,7 @@ export default function AuthPage({ initialMode }: { initialMode: Mode }) {
             style={{ background: "oklch(7.5% 0.005 260)" }}
           >
             {/* Top accent bar */}
-            <div className="h-0.5 w-full bg-gradient-to-r from-primary via-violet-500 to-transparent" />
+            <div className="h-0.5 w-full bg-gradient-to-r from-primary to-transparent" />
 
             <div className="p-4">
               {/* Label */}

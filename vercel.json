@@ -1,20 +1,37 @@
 {
   "version": 2,
-  "routes": [
+  "rewrites": [
     {
-      "src": "/api/(.*)",
-      "dest": "api/index.ts"
+      "source": "/api/(.*)",
+      "destination": "/api/index.ts"
     },
     {
-      "handle": "filesystem"
+      "source": "/images/(.*)",
+      "destination": "/artifacts/redforge/dist/public/images/$1"
     },
     {
-      "src": "/assets/(.*)",
-      "dest": "artifacts/redforge/dist/public/assets/$1"
+      "source": "/favicon.svg",
+      "destination": "/artifacts/redforge/dist/public/favicon.svg"
     },
     {
-      "src": "/(.*)",
-      "dest": "artifacts/redforge/dist/public/index.html"
+      "source": "/logo.png",
+      "destination": "/artifacts/redforge/dist/public/logo.png"
+    },
+    {
+      "source": "/email-logo.png",
+      "destination": "/artifacts/redforge/dist/public/email-logo.png"
+    },
+    {
+      "source": "/opengraph.jpg",
+      "destination": "/artifacts/redforge/dist/public/opengraph.jpg"
+    },
+    {
+      "source": "/assets/(.*)",
+      "destination": "/artifacts/redforge/dist/public/assets/$1"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/artifacts/redforge/dist/public/index.html"
     }
   ]
 }

@@ -1,37 +1,40 @@
 {
   "version": 2,
-  "rewrites": [
+  "routes": [
     {
-      "source": "/api/(.*)",
-      "destination": "/api/index.ts"
+      "src": "/api/(.*)",
+      "dest": "api/index.ts"
     },
     {
-      "source": "/images/(.*)",
-      "destination": "/artifacts/redforge/dist/public/images/$1"
+      "handle": "filesystem"
     },
     {
-      "source": "/favicon.svg",
-      "destination": "/artifacts/redforge/dist/public/favicon.svg"
+      "src": "/images/(.*)",
+      "dest": "artifacts/redforge/dist/public/images/$1"
     },
     {
-      "source": "/logo.png",
-      "destination": "/artifacts/redforge/dist/public/logo.png"
+      "src": "/favicon.svg",
+      "dest": "artifacts/redforge/dist/public/favicon.svg"
     },
     {
-      "source": "/email-logo.png",
-      "destination": "/artifacts/redforge/dist/public/email-logo.png"
+      "src": "/logo.png",
+      "dest": "artifacts/redforge/dist/public/logo.png"
     },
     {
-      "source": "/opengraph.jpg",
-      "destination": "/artifacts/redforge/dist/public/opengraph.jpg"
+      "src": "/email-logo.png",
+      "dest": "artifacts/redforge/dist/public/email-logo.png"
     },
     {
-      "source": "/assets/(.*)",
-      "destination": "/artifacts/redforge/dist/public/assets/$1"
+      "src": "/opengraph.jpg",
+      "dest": "artifacts/redforge/dist/public/opengraph.jpg"
     },
     {
-      "source": "/(.*)",
-      "destination": "/artifacts/redforge/dist/public/index.html"
+      "src": "/assets/(.*)",
+      "dest": "artifacts/redforge/dist/public/assets/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "artifacts/redforge/dist/public/index.html"
     }
   ]
 }

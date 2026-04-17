@@ -1,5 +1,4 @@
-import { db, usersTable, workspacesTable, workspaceMembersTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { db, usersTable, workspacesTable, workspaceMembersTable, eq } from "@workspace/db";
 import bcrypt from "bcryptjs";
 import { randomUUID } from "crypto";
 import { logger } from "./logger.js";
@@ -13,7 +12,7 @@ export async function seedAdminAccount() {
     const [existing] = await db
       .select({ id: usersTable.id })
       .from(usersTable)
-      .where((eq(usersTable.email, ADMIN_EMAIL) as any))
+      .where(eq(usersTable.email, ADMIN_EMAIL))
       .limit(1);
 
     if (existing) {

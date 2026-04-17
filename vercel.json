@@ -10,11 +10,11 @@
     },
     {
       "src": "/assets/(.*)",
-      "dest": "artifacts/redforge/dist/assets/$1"
+      "dest": "artifacts/redforge/dist/public/assets/$1"
     },
     {
       "src": "/(.*)",
-      "dest": "artifacts/redforge/dist/index.html"
+      "dest": "artifacts/redforge/dist/public/index.html"
     }
   ]
 }

@@ -3,21 +3,27 @@ let seeded = false;
 
 const handler = async (req: any, res: any) => {
   try {
-    if (!seeded) {
-      const { seedAdminAccount } = await import("../artifacts/api-server/src/lib/seed.js");
-      await seedAdminAccount();
-      seeded = true;
-    }
-
-    const { default: app } = await import("../artifacts/api-server/src/app.js");
-    return (app as any)(req, res);
+    const bundledHandlerPath = "../artifacts/api-server/dist/handler.mjs";
+    const { default: bundledHandler } = await import(bundledHandlerPath);
+    return (bundledHandler as any)(req, res);
   } catch (err: any) {
-    // Avoid FUNCTION_INVOCATION_FAILED without context.
-    return res.status(500).json({
-      error: "API bootstrap failure",
-      message: "Check DATABASE_URL and other required server environment variables.",
-      detail: err?.message || "Unknown bootstrap error",
-    });
+    try {
+      // Dev fallback when dist bundle is not built yet.
+      if (!seeded) {
+        const { seedAdminAccount } = await import("../artifacts/api-server/src/lib/seed.js");
+        await seedAdminAccount();
+        seeded = true;
+      }
+
+      const { default: app } = await import("../artifacts/api-server/src/app.js");
+      return (app as any)(req, res);
+    } catch (fallbackErr: any) {
+      return res.status(500).json({
+        error: "API bootstrap failure",
+        message: "Check DATABASE_URL and other required server environment variables.",
+        detail: fallbackErr?.message || err?.message || "Unknown bootstrap error",
+      });
+    }
   }
 };
 

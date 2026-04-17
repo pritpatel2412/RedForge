@@ -1,6 +1,6 @@
 import { pgTable, text, timestamp, varchar, uuid, integer, boolean } from "drizzle-orm/pg-core";
-import { usersTable } from "./users";
-import { workspacesTable } from "./workspaces";
+import { usersTable } from "./users.js";
+import { workspacesTable } from "./workspaces.js";
 
 export const couponsTable = pgTable("coupons", {
   id: uuid("id").primaryKey().defaultRandom(),

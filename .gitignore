@@ -114,6 +114,9 @@ docker-compose.override.yml
 # ── Vercel Serverless Entry (compiled from .ts) ──
 api/index.js
 
+# ── Compiled .js duplicates of .ts source (conflict on Vercel) ──
+artifacts/api-server/src/**/*.js
+
 # ── Temporary ─────────────────────────────────────
 tmp/
 temp/

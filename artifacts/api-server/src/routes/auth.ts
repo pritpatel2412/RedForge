@@ -223,28 +223,14 @@ router.post("/register", async (req, res) => {
    OAuth 2.0 — Google & GitHub
 ═══════════════════════════════════════════════════ */
 
-function getBaseUrl(req: any): string {
-  // Check common headers used by proxies/tunnels
-  const origin = req.headers.origin;
-  const referer = req.headers.referer;
-  
-  if (origin && typeof origin === "string") return origin.replace(/\/$/, "");
-  if (referer && typeof referer === "string") {
-    try {
-      const url = new URL(referer);
-      return `${url.protocol}//${url.host}`;
-    } catch { /* ignore */ }
-  }
+function getBaseUrl(_req?: any): string {
+  // Always use APP_URL for OAuth callbacks — header sniffing is unreliable
+  // on the callback leg (no origin/referer from OAuth providers).
+  const appUrl = process.env.APP_URL;
+  if (appUrl) return appUrl.replace(/\/+$/, "");
 
-  let proto = req.headers["x-forwarded-proto"] || (req.secure ? "https" : "http");
-  if (Array.isArray(proto)) proto = proto[0];
-  if (typeof proto === "string" && proto.includes(",")) proto = proto.split(",")[0].trim();
-  
-  let host = req.headers["x-forwarded-host"] || req.headers.host;
-  if (Array.isArray(host)) host = host[0];
-  if (typeof host === "string" && host.includes(",")) host = host.split(",")[0].trim();
-  
-  return `${proto}://${host}`;
+  // Fallback for local dev only
+  return "http://localhost:5000";
 }
 
 async function findOrCreateOAuthUser(
@@ -309,7 +295,7 @@ router.get("/oauth/google", (req, res) => {
   }
   const state       = randomUUID();
   const callbackUrl = `${getBaseUrl(req)}/api/auth/oauth/google/callback`;
-  res.cookie("oauth_state", state, { httpOnly: true, maxAge: 10 * 60 * 1000, sameSite: "lax" });
+  res.cookie("oauth_state", state, { httpOnly: true, maxAge: 10 * 60 * 1000, sameSite: "lax", secure: true });
   const params = new URLSearchParams({
     client_id:     clientId,
     redirect_uri:  callbackUrl,
@@ -343,7 +329,7 @@ router.get("/oauth/google/callback", async (req, res) => {
       body: new URLSearchParams({ code, client_id: clientId, client_secret: clientSecret, redirect_uri: callbackUrl, grant_type: "authorization_code" }),
     });
     const tokens = await tokenRes.json() as any;
-    if (!tokens.access_token) throw new Error("No access token from Google");
+    if (!tokens.access_token) throw new Error(`No access token from Google: ${JSON.stringify(tokens)}`);
 
     const userRes  = await fetch("https://www.googleapis.com/oauth2/v2/userinfo", {
       headers: { Authorization: `Bearer ${tokens.access_token}` },
@@ -367,7 +353,7 @@ router.get("/oauth/github", (req, res) => {
   }
   const state       = randomUUID();
   const callbackUrl = `${getBaseUrl(req)}/api/auth/oauth/github/callback`;
-  res.cookie("oauth_state", state, { httpOnly: true, maxAge: 10 * 60 * 1000, sameSite: "lax" });
+  res.cookie("oauth_state", state, { httpOnly: true, maxAge: 10 * 60 * 1000, sameSite: "lax", secure: true });
   const params = new URLSearchParams({
     client_id:    clientId,
     redirect_uri: callbackUrl,
@@ -398,7 +384,7 @@ router.get("/oauth/github/callback", async (req, res) => {
       body: new URLSearchParams({ client_id: clientId, client_secret: clientSecret, code, redirect_uri: callbackUrl }),
     });
     const tokens   = await tokenRes.json() as any;
-    if (!tokens.access_token) throw new Error("No access token from GitHub");
+    if (!tokens.access_token) throw new Error(`No access token from GitHub: ${JSON.stringify(tokens)}`);
 
     const userRes = await fetch("https://api.github.com/user", {
       headers: { Authorization: `Bearer ${tokens.access_token}`, Accept: "application/vnd.github+json" },

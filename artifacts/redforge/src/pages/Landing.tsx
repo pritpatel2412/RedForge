@@ -233,15 +233,16 @@ const FEATURES = [
 ];
 
 const TERMINAL_LINES = [
-  { prefix: "$", text: "redforge scan --target api.acme.io", color: "text-zinc-300" },
-  { prefix: "→", text: "Initializing AI penetration engine...", color: "text-zinc-500" },
-  { prefix: "→", text: "Probing 47 endpoints across 3 services", color: "text-zinc-500" },
-  { prefix: "✓", text: "CRITICAL: SQL Injection via /api/users?id=", color: "text-red-400" },
-  { prefix: "✓", text: "HIGH: JWT algorithm confusion attack", color: "text-orange-400" },
-  { prefix: "✓", text: "HIGH: Insecure object reference in /orders", color: "text-orange-400" },
-  { prefix: "→", text: "Generating AI patches...", color: "text-zinc-500" },
-  { prefix: "✓", text: "Patch ready: parameterized queries applied", color: "text-green-400" },
-  { prefix: "✓", text: "Scan complete. 8 findings, 1 critical.", color: "text-blue-400" },
+  { prefix: "$", text: "redforge scan --target api.acme.io --mode ACTIVE", color: "text-zinc-300" },
+  { prefix: "→", text: "RedForge Security Engine v3.0 — 10 modules active", color: "text-zinc-500" },
+  { prefix: "→", text: "Phase 1: Fingerprinting... Detected: Next.js, AWS, Stripe", color: "text-zinc-500" },
+  { prefix: "→", text: "Phase 2: Running 10 modules in parallel...", color: "text-zinc-500" },
+  { prefix: "✓", text: "CRITICAL: XSS — reflected injection via ?q= param", color: "text-red-400" },
+  { prefix: "✓", text: "HIGH: Cookie missing HttpOnly flag (auth session)", color: "text-orange-400" },
+  { prefix: "✓", text: "HIGH: Missing HSTS header on HTTPS endpoint", color: "text-orange-400" },
+  { prefix: "→", text: "Phase 5: Attack chain correlation engine...", color: "text-zinc-500" },
+  { prefix: "⚠", text: "CHAIN: XSS + HttpOnly = Session Hijacking (CVSS 9.3)", color: "text-red-400" },
+  { prefix: "✓", text: "Scan complete · 14 findings · 2 attack chains · Risk: 8.7/10", color: "text-blue-400" },
 ];
 
 function SeverityBadge({ level }: { level: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW" }) {
@@ -392,7 +393,7 @@ export default function Landing() {
             className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-primary/8 border border-primary/20 text-primary text-xs font-semibold tracking-widest uppercase mb-8"
           >
             <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-            RedForge Engine v2.0 — Now Live
+            RedForge Engine v3.0 — Now Live
           </motion.div>
 
           <motion.h1

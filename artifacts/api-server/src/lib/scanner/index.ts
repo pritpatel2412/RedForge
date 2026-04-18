@@ -380,8 +380,10 @@ export async function runRealScan(
 
     // ── Phase 4: AI Deep Analysis (NVIDIA NIM) ──────────────────────────────
     const nimKey = process.env.NVIDIA_NIM_API_KEY;
-    const primaryModel = process.env.NVIDIA_MODEL || "meta/llama-3.1-70b-instruct";
-    const fallbackModel = "meta/llama-3.1-8b-instruct";
+    // nvidia/llama-3.1-nemotron-70b-instruct: NVIDIA's RLHF fine-tune of Llama 3.1 70B
+    // Outperforms base Llama on reasoning & structured output — ideal for security analysis
+    const primaryModel = process.env.NVIDIA_MODEL || "nvidia/llama-3.1-nemotron-70b-instruct";
+    const fallbackModel = "meta/llama-3.1-70b-instruct";
 
     if (nimKey) {
       const runAI = async (model: string) => {

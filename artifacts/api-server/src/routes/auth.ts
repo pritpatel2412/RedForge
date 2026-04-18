@@ -131,6 +131,72 @@ router.get("/stats", async (req, res) => {
   }
 });
 
+// ── GET /api/auth/heatmap – findings-per-day for the last 365 days ────────────
+router.get("/heatmap", async (req, res) => {
+  try {
+    const result = await getUserFromRequest(req);
+    if (!result) { res.status(401).json({ error: "Unauthorized" }); return; }
+    const { workspace } = result;
+
+    // Build a map of date → count covering exactly last 365 days
+    const today    = new Date();
+    const yearAgo  = new Date(today);
+    yearAgo.setDate(yearAgo.getDate() - 364);
+    yearAgo.setHours(0, 0, 0, 0);
+
+    const dayCount: Record<string, number> = {};
+    for (let d = new Date(yearAgo); d <= today; d.setDate(d.getDate() + 1)) {
+      dayCount[d.toISOString().slice(0, 10)] = 0;
+    }
+
+    if (workspace) {
+      const projects = await db.select().from(projectsTable)
+        .where(eq(projectsTable.workspaceId as any, workspace.id));
+      const projectIds = projects.map(p => p.id);
+
+      if (projectIds.length > 0) {
+        const allFindings = await db.select({ createdAt: findingsTable.createdAt, projectId: findingsTable.projectId })
+          .from(findingsTable);
+
+        for (const f of allFindings) {
+          if (!projectIds.includes(f.projectId)) continue;
+          const day = new Date(f.createdAt).toISOString().slice(0, 10);
+          if (day in dayCount) dayCount[day]++;
+        }
+      }
+    }
+
+    // Compute streak (consecutive days with ≥1 finding, ending today)
+    const days = Object.keys(dayCount).sort();
+    let currentStreak = 0;
+    let maxStreak = 0;
+    let streak = 0;
+    for (let i = days.length - 1; i >= 0; i--) {
+      if (dayCount[days[i]] > 0) {
+        streak++;
+        if (i === days.length - 1 || days[i + 1] === days[i]) currentStreak = streak;
+      } else {
+        if (streak > maxStreak) maxStreak = streak;
+        streak = 0;
+        if (i === days.length - 1) break; // today had 0, streak is 0
+      }
+    }
+    if (streak > maxStreak) maxStreak = streak;
+
+    const totalInYear = Object.values(dayCount).reduce((a, b) => a + b, 0);
+
+    res.json({
+      days: dayCount,          // { "2024-04-18": 3, ... }
+      totalInYear,
+      currentStreak,
+      maxStreak,
+    });
+  } catch (err) {
+    req.log.error(err, "Error fetching heatmap");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 router.post("/login", async (req, res) => {
 
   try {

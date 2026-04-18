@@ -30,6 +30,7 @@ const Dashboard  = lazy(() => import("./pages/Dashboard"));
 const Analytics  = lazy(() => import("./pages/Analytics"));
 const Reports    = lazy(() => import("./pages/Reports"));
 const Chat       = lazy(() => import("./pages/Chat"));
+const Profile    = lazy(() => import("./pages/Profile"));
 
 const ProjectList   = lazy(() => import("./pages/projects/ProjectList"));
 const ProjectNew    = lazy(() => import("./pages/projects/ProjectNew"));
@@ -117,6 +118,7 @@ function Router() {
       <Route path="/settings/billing"><AppLayout><S><Billing /></S></AppLayout></Route>
 
       <Route path="/chat"><AppLayout><S><Chat /></S></AppLayout></Route>
+      <Route path="/profile"><AppLayout><S><Profile /></S></AppLayout></Route>
 
       {/* Admin — lazy */}
       <Route path="/admin"><AdminLayout><S><AdminDashboard /></S></AdminLayout></Route>

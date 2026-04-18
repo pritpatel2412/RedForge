@@ -1,7 +1,7 @@
 import { Router } from "express";
 import bcrypt from "bcryptjs";
 import { randomUUID } from "crypto";
-import { db, usersTable, sessionsTable, workspacesTable, workspaceMembersTable } from "@workspace/db";
+import { db, usersTable, sessionsTable, workspacesTable, workspaceMembersTable, scansTable, findingsTable, projectsTable } from "@workspace/db";
 import { eq, and, gt } from "drizzle-orm";
 import { getUserFromRequest } from "../lib/auth.js";
 import { sendWelcomeEmail } from "../lib/email.js";
@@ -44,7 +44,95 @@ router.get("/me", async (req, res) => {
   }
 });
 
+// ── PATCH /api/auth/profile – update name / password ─────────────────────────
+router.patch("/profile", async (req, res) => {
+  try {
+    const result = await getUserFromRequest(req);
+    if (!result) { res.status(401).json({ error: "Unauthorized" }); return; }
+    const { user } = result;
+
+    const { name, currentPassword, newPassword } = req.body as {
+      name?: string;
+      currentPassword?: string;
+      newPassword?: string;
+    };
+
+    const updates: Record<string, any> = { updatedAt: new Date() };
+
+    if (name && name.trim()) {
+      updates.name = name.trim().slice(0, 100);
+    }
+
+    if (newPassword) {
+      if (!currentPassword) {
+        res.status(400).json({ error: "Current password is required" }); return;
+      }
+      if (!user.passwordHash) {
+        res.status(400).json({ error: "Password change not supported for OAuth accounts" }); return;
+      }
+      const valid = await bcrypt.compare(currentPassword, user.passwordHash);
+      if (!valid) {
+        res.status(400).json({ error: "Current password is incorrect" }); return;
+      }
+      if (newPassword.length < 8) {
+        res.status(400).json({ error: "New password must be at least 8 characters" }); return;
+      }
+      updates.passwordHash = await bcrypt.hash(newPassword, 12);
+    }
+
+    await db.update(usersTable).set(updates).where(eq(usersTable.id as any, user.id));
+    logActivity({ userId: user.id, action: "user.profile_update", req }).catch(() => {});
+    res.json({ ok: true, name: updates.name ?? user.name });
+  } catch (err) {
+    req.log.error(err, "Error updating profile");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// ── GET /api/auth/stats – activity counts for profile page ────────────────────
+router.get("/stats", async (req, res) => {
+  try {
+    const result = await getUserFromRequest(req);
+    if (!result) { res.status(401).json({ error: "Unauthorized" }); return; }
+    const { user, workspace } = result;
+
+    const sessions = await db.select().from(sessionsTable)
+      .where(and(eq(sessionsTable.userId as any, user.id), gt(sessionsTable.expiresAt as any, new Date())));
+
+    let totalScans = 0, totalFindings = 0, criticalFindings = 0;
+
+    if (workspace) {
+      const projects = await db.select().from(projectsTable)
+        .where(eq(projectsTable.workspaceId as any, workspace.id));
+      const projectIds = projects.map(p => p.id);
+
+      if (projectIds.length > 0) {
+        const allScans = await db.select().from(scansTable);
+        const wsScans = allScans.filter(s => projectIds.includes(s.projectId));
+        totalScans = wsScans.length;
+
+        const allFindings = await db.select().from(findingsTable);
+        const wsFindings = allFindings.filter(f => projectIds.includes(f.projectId));
+        totalFindings = wsFindings.length;
+        criticalFindings = wsFindings.filter(f => f.severity === "CRITICAL").length;
+      }
+    }
+
+    res.json({
+      totalScans,
+      totalFindings,
+      criticalFindings,
+      activeSessions: sessions.length,
+      memberSince: user.createdAt,
+    });
+  } catch (err) {
+    req.log.error(err, "Error fetching user stats");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 router.post("/login", async (req, res) => {
+
   try {
     const { email, password } = req.body;
     if (!email || !password) {

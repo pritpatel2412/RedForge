@@ -330,23 +330,31 @@ export function Header({ user }: { user?: User }) {
           <div className="w-px h-5 bg-border mx-1" />
 
           {/* User menu */}
-          <div className="flex items-center gap-2.5 pl-1 pr-2 py-1.5 rounded-xl hover:bg-white/4 transition-colors cursor-pointer group">
-            {/* DiceBear Avatar */}
-            <UserAvatar name={user?.name || "Admin"} size={28} />
-            <div className="hidden sm:block">
-              <p className="text-xs font-semibold text-white leading-tight">{user?.name || "Admin"}</p>
-              <p className="text-[10px] text-muted-foreground leading-tight">{user?.email}</p>
-            </div>
+          <div className="flex items-center gap-1">
+            {/* Clicking avatar/name → /profile */}
+            <button
+              onClick={() => setLocation("/profile")}
+              className="flex items-center gap-2.5 pl-1 pr-2 py-1.5 rounded-xl hover:bg-white/6 transition-colors cursor-pointer group"
+              title="View profile"
+            >
+              <UserAvatar name={user?.name || "Admin"} size={28} />
+              <div className="hidden sm:block text-left">
+                <p className="text-xs font-semibold text-white leading-tight group-hover:text-primary transition-colors">{user?.name || "Admin"}</p>
+                <p className="text-[10px] text-muted-foreground leading-tight">{user?.email}</p>
+              </div>
+            </button>
+            {/* Logout icon stays separate */}
             <motion.button
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
               onClick={(e) => { e.stopPropagation(); doLogout(); }}
-              className="ml-2 p-1.5 text-muted-foreground hover:text-primary transition-colors rounded-lg hover:bg-primary/10"
+              className="ml-0.5 p-1.5 text-muted-foreground hover:text-primary transition-colors rounded-lg hover:bg-primary/10"
               title="Sign out"
             >
               <LogOut className="w-3.5 h-3.5" />
             </motion.button>
           </div>
+
         </div>
       </header>
 

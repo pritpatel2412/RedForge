@@ -56,9 +56,52 @@ router.get("/:id", requireAuth, async (req, res) => {
       return;
     }
 
-    const findings = await db.select().from(findingsTable)
+    const currentFindings = await db.select().from(findingsTable)
       .where(eq(findingsTable.scanId as any, id))
       .orderBy(desc(findingsTable.createdAt));
+
+    // Get previous successful scan to compute diff
+    const [prevScan] = await db.select().from(scansTable)
+      .where(and(
+        eq(scansTable.projectId as any, scan.projectId),
+        eq(scansTable.status as any, "COMPLETED"),
+        gt(scansTable.createdAt as any, new Date(0)) // Trick to ensure order works well with complex filters
+      ))
+      .where(and(
+        eq(scansTable.projectId as any, scan.projectId),
+        eq(scansTable.status as any, "COMPLETED")
+      ))
+      .orderBy(desc(scansTable.createdAt))
+      .limit(2); // The first one might be the current one if it's completed
+
+    const lastCompletedScanId = (prevScan?.id === id) 
+      ? (await db.select().from(scansTable)
+          .where(and(eq(scansTable.projectId as any, scan.projectId), eq(scansTable.status as any, "COMPLETED")))
+          .orderBy(desc(scansTable.createdAt))
+          .offset(1)
+          .limit(1))[0]?.id
+      : prevScan?.id;
+
+    let resolvedFindings: any[] = [];
+    let newFindingsIds = new Set<string>();
+
+    if (lastCompletedScanId) {
+      const prevFindings = await db.select().from(findingsTable)
+        .where(eq(findingsTable.scanId as any, lastCompletedScanId));
+
+      const prevKeys = new Set(prevFindings.map(f => `${f.title}|${f.endpoint}`));
+      const currentKeys = new Set(currentFindings.map(f => `${f.title}|${f.endpoint}`));
+
+      // New findings: in current, not in previous
+      currentFindings.forEach(f => {
+        if (!prevKeys.has(`${f.title}|${f.endpoint}`)) {
+          newFindingsIds.add(f.id);
+        }
+      });
+
+      // Resolved findings: in previous, not in current
+      resolvedFindings = prevFindings.filter(f => !currentKeys.has(`${f.title}|${f.endpoint}`));
+    }
 
     const logs = await db.select().from(scanLogsTable)
       .where(eq(scanLogsTable.scanId as any, id))
@@ -67,7 +110,12 @@ router.get("/:id", requireAuth, async (req, res) => {
     res.json({
       ...scan,
       projectName: project.name,
-      findings: findings.map(f => ({ ...f, projectName: project.name })),
+      findings: currentFindings.map(f => ({ 
+        ...f, 
+        projectName: project.name,
+        isNew: newFindingsIds.has(f.id)
+      })),
+      resolvedFindings,
       logs,
     });
   } catch (err) {

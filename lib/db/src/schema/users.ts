@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, varchar, uuid } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, varchar, uuid, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -13,6 +13,9 @@ export const usersTable = pgTable("users", {
   currentWorkspaceId: uuid("current_workspace_id"),
   resetPasswordToken: text("reset_password_token"),
   resetPasswordExpiresAt: timestamp("reset_password_expires_at"),
+  notifyEmail: boolean("notify_email").notNull().default(true),
+  notifySecurityAlerts: boolean("notify_security_alerts").notNull().default(true),
+  notifyWeeklySummary: boolean("notify_weekly_summary").notNull().default(true),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

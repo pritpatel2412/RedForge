@@ -24,6 +24,9 @@ router.get("/me", async (req, res) => {
         name: user.name,
         avatarUrl: user.avatarUrl,
         role: user.role,
+        notifyEmail: user.notifyEmail,
+        notifySecurityAlerts: user.notifySecurityAlerts,
+        notifyWeeklySummary: user.notifyWeeklySummary,
         createdAt: user.createdAt,
       },
       workspace: workspace ? {
@@ -55,6 +58,9 @@ router.patch("/profile", async (req, res) => {
       name?: string;
       currentPassword?: string;
       newPassword?: string;
+      notifyEmail?: boolean;
+      notifySecurityAlerts?: boolean;
+      notifyWeeklySummary?: boolean;
     };
 
     const updates: Record<string, any> = { updatedAt: new Date() };
@@ -62,6 +68,10 @@ router.patch("/profile", async (req, res) => {
     if (name && name.trim()) {
       updates.name = name.trim().slice(0, 100);
     }
+
+    if (req.body.notifyEmail !== undefined) updates.notifyEmail = !!req.body.notifyEmail;
+    if (req.body.notifySecurityAlerts !== undefined) updates.notifySecurityAlerts = !!req.body.notifySecurityAlerts;
+    if (req.body.notifyWeeklySummary !== undefined) updates.notifyWeeklySummary = !!req.body.notifyWeeklySummary;
 
     if (newPassword) {
       if (!currentPassword) {

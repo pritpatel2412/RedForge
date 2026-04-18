@@ -7,8 +7,9 @@ import {
   User, Mail, Calendar, Shield, Scan, AlertTriangle,
   MonitorSmartphone, Lock, Save, Loader2,
   Eye, EyeOff, Edit3, X, ShieldCheck,
-  Key, Activity, Flame, TrendingUp, ChevronDown, LogOut,
+  Key, Activity, Flame, TrendingUp, ChevronDown, LogOut, Bell
 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function formatDate(d: string | Date) {
@@ -522,6 +523,38 @@ export default function ProfilePage() {
               </div>
             </form>
           )}
+        </div>
+
+        {/* Notification Preferences */}
+        <div className="rounded-2xl border border-border p-6 space-y-5" style={{ background: "oklch(9% 0.005 0)" }}>
+          <div className="flex items-center gap-2 border-b border-border pb-4">
+            <Bell className="w-4 h-4 text-primary" />
+            <h2 className="text-sm font-bold text-white">Notification Preferences</h2>
+          </div>
+
+          <div className="space-y-6">
+            <NotificationToggle
+              label="Email Notifications"
+              description="Receive account and security related updates via email."
+              checked={user?.notifyEmail ?? true}
+              onCheckedChange={(v) => updateProfile.mutate({ notifyEmail: v })}
+              disabled={updateProfile.isPending}
+            />
+            <NotificationToggle
+              label="Security Alerts"
+              description="Get immediate alerts for critical findings and breaches."
+              checked={user?.notifySecurityAlerts ?? true}
+              onCheckedChange={(v) => updateProfile.mutate({ notifySecurityAlerts: v })}
+              disabled={updateProfile.isPending}
+            />
+            <NotificationToggle
+              label="Weekly Summary"
+              description="A consolidated report of your security activity."
+              checked={user?.notifyWeeklySummary ?? true}
+              onCheckedChange={(v) => updateProfile.mutate({ notifyWeeklySummary: v })}
+              disabled={updateProfile.isPending}
+            />
+          </div>
         </div>
 
         {/* Danger zone */}

@@ -111,6 +111,9 @@ replit*.md
 .dockerignore
 docker-compose.override.yml
 
+# ── Vercel Serverless Entry (compiled from .ts) ──
+api/index.js
+
 # ── Temporary ─────────────────────────────────────
 tmp/
 temp/

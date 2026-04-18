@@ -1,5 +1,8 @@
 {
   "version": 2,
+  "framework": null,
+  "installCommand": "npm i -g pnpm && pnpm install --frozen-lockfile",
+  "buildCommand": "pnpm --filter @workspace/api-server run build && pnpm --filter @workspace/redforge run build",
   "routes": [
     {
       "src": "/api/(.*)",

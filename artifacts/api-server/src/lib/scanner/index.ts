@@ -380,8 +380,8 @@ export async function runRealScan(
 
     // ── Phase 4: AI Deep Analysis (NVIDIA NIM) ──────────────────────────────
     const nimKey = process.env.NVIDIA_NIM_API_KEY;
-    const primaryModel = process.env.NVIDIA_MODEL || "zhipuai/glm-5-plus";
-    const fallbackModel = "meta/llama-3.1-70b-instruct";
+    const primaryModel = process.env.NVIDIA_MODEL || "meta/llama-3.1-70b-instruct";
+    const fallbackModel = "meta/llama-3.1-8b-instruct";
 
     if (nimKey) {
       const runAI = async (model: string) => {

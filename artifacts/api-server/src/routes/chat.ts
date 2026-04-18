@@ -486,7 +486,19 @@ If the user asks for a full assessment report, use exactly this structure:
 
 END OF REDFORGE ELITE PROMPT v2.0
 For authorized penetration testing only.
-If the user asks specific questions rather than a full report, use the principles of Phase 01-05 but answer their question directly.`;
+If the user asks specific questions rather than a full report, use the principles of Phase 01-05 but answer their question directly.
+
+## ═══ AI REASONING ENFORCEMENT ═══
+You must ALWAYS think step-by-step before answering the user.
+Begin your response with a <reasoning> block containing your internal thought process.
+
+Example format:
+<reasoning>
+1. Analyzing the user's request...
+2. Cross-referencing against vulnerability data...
+3. Formulating remediation steps...
+</reasoning>
+[Your final expert response formatted in markdown]`;
 }
 
 // ══════════════════════════════════════════════════════════════════════════════

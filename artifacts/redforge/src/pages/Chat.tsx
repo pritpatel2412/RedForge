@@ -216,6 +216,44 @@ function ThinkingDots() {
   );
 }
 
+// ─── Reasoning Block ────────────────────────────────────────────────────────────
+function ReasoningBlock({ content, streaming }: { content: string; streaming?: boolean }) {
+  const [isOpen, setIsOpen] = useState(false);
+  useEffect(() => {
+    if (streaming) setIsOpen(true);
+  }, [streaming]);
+
+  if (!content.trim() && !streaming) return null;
+
+  return (
+    <div className="mb-4 rounded-xl border border-primary/20 bg-primary/5 overflow-hidden">
+      <button 
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center gap-2 w-full px-4 py-2 text-xs font-semibold text-primary hover:bg-primary/10 transition-colors outline-none"
+      >
+        <Lightbulb className="w-3.5 h-3.5" />
+        <span>{streaming && !isOpen ? "Thinking Process..." : "AI Reasoning Process"}</span>
+        <ChevronRight className={cn("w-3 h-3 ml-auto opacity-70 transition-transform", isOpen && "rotate-90")} />
+      </button>
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ height: 0 }}
+            animate={{ height: "auto" }}
+            exit={{ height: 0 }}
+            className="overflow-hidden"
+          >
+            <div className="px-4 pb-3 text-[11px] text-zinc-400 font-mono whitespace-pre-wrap border-t border-primary/10 pt-2 leading-relaxed">
+              {content || "Analyzing..."}
+              {streaming && <span className="inline-block w-1.5 h-3 bg-primary/70 ml-1 animate-pulse align-middle" />}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
 // ─── Message Action Bar ───────────────────────────────────────────────────────
 function MessageActions({
   msg, feedback, onFeedback, isLast: _isLast, isStreaming: _isStreaming,
@@ -1116,8 +1154,43 @@ export default function Chat() {
                           </div>
                         ) : (
                           <>
-                            {msg.content ? <MarkdownMessage content={msg.content} /> : <ThinkingDots />}
-                            {msg.streaming && msg.content && <TypingCursor />}
+                            {(() => {
+                              if (!msg.content && !msg.streaming) return null;
+                              if (!msg.content && msg.streaming) return <ThinkingDots />;
+                              
+                              let reasoningText = null;
+                              let displayText = msg.content;
+                              let isReasoningStreaming = false;
+                              
+                              const str = msg.content;
+                              const openIdx = str.indexOf("<reasoning>");
+                              
+                              if (openIdx !== -1) {
+                                const closeIdx = str.indexOf("</reasoning>");
+                                if (closeIdx !== -1) {
+                                  reasoningText = str.slice(openIdx + 11, closeIdx);
+                                  displayText = str.slice(0, openIdx) + str.slice(closeIdx + 12);
+                                } else {
+                                  reasoningText = str.slice(openIdx + 11);
+                                  displayText = str.slice(0, openIdx);
+                                  isReasoningStreaming = msg.streaming || false;
+                                }
+                              }
+
+                              return (
+                                <>
+                                  {openIdx !== -1 && (
+                                    <ReasoningBlock content={reasoningText || ""} streaming={isReasoningStreaming} />
+                                  )}
+                                  {displayText.trim() ? (
+                                    <MarkdownMessage content={displayText.trim()} />
+                                  ) : (
+                                    (!isReasoningStreaming && msg.streaming) ? <ThinkingDots /> : null
+                                  )}
+                                  {msg.streaming && msg.content && !isReasoningStreaming && <TypingCursor />}
+                                </>
+                              );
+                            })()}
                           </>
                         )}
                       </div>

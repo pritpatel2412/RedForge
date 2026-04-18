@@ -64,16 +64,17 @@ export default function NotFound() {
             {/* 1. Text Container */}
             <div className="relative z-[2] text-center px-4 -mt-20">
                 <div className="flex justify-center mb-6">
-                    <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-primary to-orange-600 flex items-center justify-center shadow-[0_0_30px_rgba(225,29,72,0.3)] border border-primary/30">
-                        <span className="font-bold text-white text-2xl tracking-tighter">RF</span>
-                    </div>
+                    <img src="/logo.png" alt="RedForge Logo" className="w-20 h-20 object-contain drop-shadow-[0_0_15px_rgba(225,29,72,0.3)] animate-pulse" />
                 </div>
                 
-                <h1 className="text-white text-5xl md:text-7xl font-bold mb-4 tracking-[-0.02em] drop-shadow-xl">
-                    Sector 404
+                <h1 className="text-white text-5xl md:text-7xl font-mono font-bold mb-6 tracking-tight drop-shadow-[0_0_20px_rgba(225,29,72,0.6)] uppercase flex items-center justify-center gap-2">
+                    <span className="text-primary opacity-80">&gt;</span>
+                    <span>SECTOR_404</span>
+                    <span className="animate-pulse text-primary/80">_</span>
                 </h1>
                 
-                <p className="text-zinc-400 font-medium md:text-lg tracking-wide mb-8 max-w-md mx-auto">
+                <p className="text-zinc-400 font-mono text-sm md:text-base mb-8 max-w-md mx-auto leading-relaxed border-l-2 border-primary/50 pl-4 py-2 bg-gradient-to-r from-primary/5 to-transparent text-left shadow-[inset_2px_0_10px_rgba(225,29,72,0.05)]">
+                    <span className="text-primary font-bold block mb-1">sys.err // target_not_found</span>
                     You've ventured into uncharted red team territory. Nothing out here but digital wasteland.
                 </p>
                 

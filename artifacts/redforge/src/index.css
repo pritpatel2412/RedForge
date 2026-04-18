@@ -342,27 +342,34 @@
 
 /* Selected node ring: violet glow instead of blue */
 .react-flow__node.selected > * {
-  outline: 2px solid rgba(139, 92, 246, 0.7) !important;
+  outline: 2px solid rgba(239, 68, 68, 0.85) !important;
   outline-offset: 2px;
   border-radius: 16px !important;
+  box-shadow: 0 0 20px rgba(239,68,68,0.2) !important;
 }
 
-/* Edges */
+/* Edges — red attack path lines */
 .react-flow__edge-path {
-  stroke: #7c3aed;
+  stroke: #ef4444;
+  filter: drop-shadow(0 0 4px rgba(239,68,68,0.4));
+}
+
+/* Animated dash travel for attacker -> vuln edges */
+@keyframes redforge-dash {
+  to { stroke-dashoffset: -36; }
 }
 
 /* Edge label text */
 .react-flow__edge-text {
-  fill: #c4b5fd !important;
-  font-size: 11px !important;
-  font-weight: 600 !important;
+  fill: #fca5a5 !important;
+  font-size: 10px !important;
+  font-weight: 700 !important;
   font-family: inherit !important;
 }
 
 /* Edge label background box */
 .react-flow__edge-textbg {
-  fill: oklch(8% 0 0) !important;
+  fill: oklch(6% 0 0) !important;
   rx: 4;
 }
 

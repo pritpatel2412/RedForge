@@ -118,16 +118,45 @@ function buildLayout(gnodes: GNode[], gedges: GEdge[]): { nodes: any[]; edges: a
     });
   });
 
-  const rfEdges: any[] = gedges.map(e => ({
-    id: e.id, source: e.source, target: e.target,
-    label: e.label, type: "smoothstep", animated: true,
-    markerEnd: { type: MarkerType.ArrowClosed, color: "#7c3aed", width: 16, height: 16 },
-    style: { stroke: "#7c3aed", strokeWidth: 2 },
-    labelStyle: { fill: "#c4b5fd", fontSize: 11, fontWeight: 600 },
-    labelBgStyle: { fill: "#0d0d1a", fillOpacity: 0.9 },
-    labelBgPadding: [8, 4] as [number,number],
-    labelBgBorderRadius: 6,
-  }));
+  const rfEdges: any[] = gedges.map((e, idx) => {
+    // Determine which chain the edge belongs to for coloring
+    const connectedChain = gnodes.find(n => n.id === e.source || n.id === e.target);
+    const isFromAttacker = e.source === "attacker";
+    const isToTarget     = gnodes.find(n => n.id === e.target)?.type === "target";
+
+    // Critical path (attacker → vuln → target) = bright red; vuln→vuln = dimmer red
+    const edgeColor   = isFromAttacker ? "#ef4444" : isToTarget ? "#ef4444" : "#dc2626";
+    const glowColor   = isFromAttacker ? "rgba(239,68,68,0.5)" : "rgba(220,38,38,0.35)";
+    const strokeWidth = isFromAttacker || isToTarget ? 2.5 : 2;
+
+    return {
+      id: e.id,
+      source: e.source,
+      target: e.target,
+      label: e.label,
+      type: "bezier",
+      animated: false,           // We use CSS animation instead for glow
+      markerEnd: {
+        type: MarkerType.ArrowClosed,
+        color: edgeColor,
+        width: 18,
+        height: 18,
+      },
+      style: {
+        stroke: edgeColor,
+        strokeWidth,
+        filter: `drop-shadow(0 0 4px ${glowColor}) drop-shadow(0 0 8px ${glowColor})`,
+        strokeDasharray: isFromAttacker ? "8 4" : "none",
+        animation: isFromAttacker
+          ? `redforge-dash 1.2s linear infinite`
+          : undefined,
+      },
+      labelStyle: { fill: "#fca5a5", fontSize: 10, fontWeight: 700 },
+      labelBgStyle: { fill: "#0d0208", fillOpacity: 0.92 },
+      labelBgPadding: [8, 4] as [number, number],
+      labelBgBorderRadius: 6,
+    };
+  });
   return { nodes: rfNodes, edges: rfEdges };
 }
 

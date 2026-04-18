@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { Link } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import toast from "react-hot-toast";
@@ -34,6 +35,14 @@ function FindingsHeatmap({ data }: {
 }) {
   const [tooltip, setTooltip] = useState<{ x: number; y: number; text: string } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const scrollRef    = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll to show today (rightmost column) on mount
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollLeft = scrollRef.current.scrollWidth;
+    }
+  }, [data]);
 
   if (!data) {
     return (
@@ -95,8 +104,8 @@ function FindingsHeatmap({ data }: {
         </span>
       </div>
 
-      {/* Scrollable grid */}
-      <div className="overflow-x-auto pb-1">
+      {/* Scrollable grid — auto-scrolled to today via ref */}
+      <div ref={scrollRef} className="overflow-x-auto pb-1">
         <div style={{ display: "inline-block", minWidth: "fit-content" }}>
           {/* Month labels */}
           <div style={{ display: "flex", marginLeft: 0, marginBottom: 4, height: 14 }}>
@@ -474,13 +483,24 @@ export default function ProfilePage() {
               </p>
             </div>
           ) : !pwdOpen ? (
-            <button
-              onClick={() => setPwdOpen(true)}
-              className="flex items-center gap-2 px-4 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white rounded-xl text-sm font-medium border border-border transition-all"
-            >
-              <Key className="w-4 h-4" />
-              Change Password
-            </button>
+            <div className="space-y-3">
+              <button
+                onClick={() => setPwdOpen(true)}
+                className="flex items-center gap-2 px-4 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white rounded-xl text-sm font-medium border border-border transition-all"
+              >
+                <Key className="w-4 h-4" />
+                Change Password
+              </button>
+              <p className="text-xs text-zinc-600">
+                Forgot your current password?{" "}
+                <Link
+                  href="/auth/forgot-password"
+                  className="text-primary hover:text-primary/80 underline underline-offset-2 transition-colors"
+                >
+                  Send reset email
+                </Link>
+              </p>
+            </div>
           ) : (
             <form onSubmit={handlePwd} className="space-y-4">
               <PwdField label="Current Password" value={curPwd} onChange={setCurPwd} placeholder="Enter current password" />

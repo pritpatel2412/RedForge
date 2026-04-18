@@ -1,3 +1,6 @@
+import { existsSync } from "fs";
+import { dirname, join } from "path";
+import { fileURLToPath } from "url";
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
@@ -5,6 +8,14 @@ import pinoHttp from "pino-http";
 import compression from "compression";
 import router from "./routes/index.js";
 import { logger } from "./lib/logger.js";
+
+/** When the Vite build output is present next to this package, serve it so deep links (/dashboard, /status) work behind a single Node process. */
+function resolveSpaRoot(): string | null {
+  const here = dirname(fileURLToPath(import.meta.url));
+  const candidate = join(here, "..", "..", "redforge", "dist", "public");
+  const indexHtml = join(candidate, "index.html");
+  return existsSync(indexHtml) ? candidate : null;
+}
 
 const app = express();
 
@@ -65,6 +76,19 @@ app.use("/api", (req: any, res: any, next: any) => {
 });
 
 app.use("/api", router);
+
+const spaRoot = resolveSpaRoot();
+if (spaRoot) {
+  logger.info({ spaRoot }, "Serving SPA from API server");
+  app.use(express.static(spaRoot, { index: false }));
+  app.use((req: any, res: any, next: any) => {
+    if (req.method !== "GET" && req.method !== "HEAD") return next();
+    if (req.path.startsWith("/api")) return next();
+    res.sendFile(join(spaRoot, "index.html"), (err: Error | null) => {
+      if (err) next(err);
+    });
+  });
+}
 
 export default app;
 

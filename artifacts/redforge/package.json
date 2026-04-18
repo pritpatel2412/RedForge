@@ -78,6 +78,7 @@
   "dependencies": {
     "@react-three/fiber": "^9.5.0",
     "@react-three/postprocessing": "^3.0.4",
+    "@vercel/analytics": "^2.0.1",
     "@xyflow/react": "^12.10.2",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.7",

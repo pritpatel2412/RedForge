@@ -1,9 +1,11 @@
 import { lazy, Suspense } from "react";
-import { Switch, Route, Router as WouterRouter } from "wouter";
+import { Switch, Route, Router as WouterRouter, Redirect } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "react-hot-toast";
+import { Analytics as VercelAnalytics } from "@vercel/analytics/react";
 
 import { AppLayout } from "./components/layout/AppLayout";
+import { SeoHead } from "./components/SeoHead";
 import { AdminLayout } from "./pages/admin/AdminLayout";
 import { PageLoader } from "./components/layout/PageLoader";
 import { BetaModal } from "./components/BetaModal";
@@ -89,6 +91,7 @@ function Router() {
       {/* Public — lazy */}
       <Route path="/changelog"><S><Changelog /></S></Route>
       <Route path="/status"><S><Status /></S></Route>
+      <Route path="/channel"><S><Redirect href="/chat" /></S></Route>
       <Route path="/terms"><S><TermsPage /></S></Route>
       <Route path="/privacy"><S><PrivacyPage /></S></Route>
 
@@ -131,8 +134,10 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+        <SeoHead />
         <Router />
       </WouterRouter>
+      <VercelAnalytics />
       <BetaModal />
       <Toaster
         position="top-right"

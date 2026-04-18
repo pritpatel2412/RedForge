@@ -1,0 +1,6 @@
+# https://www.robotstxt.org/robotstxt.html
+User-agent: *
+Allow: /
+
+# After you set VITE_PUBLIC_SITE_URL in production, add a sitemap line, e.g.:
+# Sitemap: https://your-domain.com/sitemap.xml

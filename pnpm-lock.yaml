@@ -390,6 +390,9 @@ importers:
       three:
         specifier: ^0.183.2
         version: 0.183.2
+      unicornstudio-react:
+        specifier: 2.1.4-1
+        version: 2.1.4-1(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
     devDependencies:
       '@hookform/resolvers':
         specifier: ^3.10.0
@@ -4197,6 +4200,17 @@ packages:
     resolution: {integrity: sha512-wH590V9VNgYH9g3lH9wWjTrUoKsjLF6sGLjhR4sH1LWpLmCOH0Zf7PukhDA8BiS7KHe4oPNkcTHqYkj7SOGUOw==}
     engines: {node: '>=20'}
 
+  unicornstudio-react@2.1.4-1:
+    resolution: {integrity: sha512-k1SLWsUlac8IZAczEP6heGxLTlSgogLvUL6vqmYtJtePJXzV/EUwNXqWkxwcz+WGILFaFa9cVKUDZh2vSkOJow==}
+    engines: {node: '>=20.0.0'}
+    peerDependencies:
+      next: '*'
+      react: '>=18.0.0'
+      react-dom: '>=18.0.0'
+    peerDependenciesMeta:
+      next:
+        optional: true
+
   universalify@2.0.1:
     resolution: {integrity: sha512-gptHNQghINnc/vTGIk0SOFGFNXw7JVrlRUtConJRlvaw6DuX0wO5Jeko9sWrMBhh+PsYAZ7oXAiOnf/UKogyiw==}
     engines: {node: '>= 10.0.0'}
@@ -7749,6 +7763,11 @@ snapshots:
   unicorn-magic@0.3.0: {}
 
   unicorn-magic@0.4.0: {}
+
+  unicornstudio-react@2.1.4-1(react-dom@19.1.0(react@19.1.0))(react@19.1.0):
+    dependencies:
+      react: 19.1.0
+      react-dom: 19.1.0(react@19.1.0)
 
   universalify@2.0.1: {}
 

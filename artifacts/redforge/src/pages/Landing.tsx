@@ -10,12 +10,13 @@ import {
   Slack, Bell, Code2, Sparkles,
   ShieldCheck, Eye, BarChart3, Webhook, Database,
 } from "lucide-react";
-import DemoShowcase from "@/components/landing/DemoShowcase";
+import UnicornScene from "unicornstudio-react";
+import BorderGlow from "@/components/BorderGlow/BorderGlow";
 
 class DitherBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
   state = { failed: false };
   static getDerivedStateFromError() { return { failed: true }; }
-  componentDidCatch() {}
+  componentDidCatch() { }
   render() {
     if (this.state.failed) return null;
     return this.props.children;
@@ -488,9 +489,6 @@ export default function Landing() {
       </div>
       {/* ═══ END HERO ═══ */}
 
-      {/* ═══ DEMO SHOWCASE ═══ */}
-      <DemoShowcase />
-
 
       {/* ═══ THE PROBLEM ═══ */}
       <section className="relative z-10 py-32 px-4 overflow-hidden" style={{ background: "oklch(6% 0 0)" }}>
@@ -580,13 +578,27 @@ export default function Landing() {
                 key={feat.title}
                 variants={fadeUp}
                 whileHover={{ y: -4, transition: { duration: 0.2 } }}
-                className="p-6 rounded-2xl bg-card border border-border hover:border-white/15 transition-all duration-300 group cursor-default"
+                className="group cursor-default h-full"
               >
-                <div className={`w-11 h-11 rounded-xl ${feat.bg} border ${feat.border} flex items-center justify-center mb-5 group-hover:scale-110 transition-transform duration-200`}>
-                  <feat.icon className={`w-5 h-5 ${feat.color}`} />
-                </div>
-                <h3 className="text-base font-semibold text-white mb-2">{feat.title}</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">{feat.description}</p>
+                <BorderGlow
+                  borderRadius={16}
+                  backgroundColor="#0e0c0c"
+                  glowColor="5 75 65"
+                  colors={['#ef4444', '#8b5cf6', '#f97316']}
+                  glowRadius={44}
+                  glowIntensity={1.1}
+                  coneSpread={22}
+                  fillOpacity={0.45}
+                  className="h-full"
+                >
+                  <div className="p-6">
+                    <div className={`w-11 h-11 rounded-xl ${feat.bg} border ${feat.border} flex items-center justify-center mb-5 group-hover:scale-110 transition-transform duration-200`}>
+                      <feat.icon className={`w-5 h-5 ${feat.color}`} />
+                    </div>
+                    <h3 className="text-base font-semibold text-white mb-2">{feat.title}</h3>
+                    <p className="text-sm text-muted-foreground leading-relaxed">{feat.description}</p>
+                  </div>
+                </BorderGlow>
               </motion.div>
             ))}
           </AnimatedSection>
@@ -807,11 +819,10 @@ export default function Landing() {
                   key={plan.id}
                   variants={fadeUp}
                   whileHover={{ y: isPrimary ? -2 : -4, transition: { duration: 0.2 } }}
-                  className={`relative flex flex-col rounded-2xl border p-8 transition-all duration-300 ${
-                    isPrimary
+                  className={`relative flex flex-col rounded-2xl border p-8 transition-all duration-300 ${isPrimary
                       ? "bg-primary/5 border-primary/40 shadow-[0_0_40px_hsl(348_83%_50%_/_0.12)] ring-1 ring-primary/20"
                       : "bg-card border-border hover:border-white/20"
-                  }`}
+                    }`}
                 >
                   {plan.badge && (
                     <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
@@ -864,11 +875,10 @@ export default function Landing() {
                   ) : (
                     <Link
                       href={plan.ctaLink as string}
-                      className={`w-full py-3 rounded-xl font-semibold text-sm transition-all text-center mb-8 block ${
-                        isPrimary
+                      className={`w-full py-3 rounded-xl font-semibold text-sm transition-all text-center mb-8 block ${isPrimary
                           ? "bg-primary text-white hover:bg-primary/90 glow-red-sm hover:glow-red"
                           : "bg-white/5 border border-white/15 text-white hover:bg-white/10 hover:border-white/25"
-                      }`}
+                        }`}
                     >
                       {plan.cta}
                     </Link>

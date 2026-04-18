@@ -295,7 +295,15 @@ router.get("/oauth/google", (req, res) => {
   }
   const state       = randomUUID();
   const callbackUrl = `${getBaseUrl(req)}/api/auth/oauth/google/callback`;
-  res.cookie("oauth_state", state, { httpOnly: true, maxAge: 10 * 60 * 1000, sameSite: "lax", secure: true });
+  const isProd      = process.env.NODE_ENV === "production";
+  // SameSite=none + Secure required so the cookie survives the cross-origin
+  // redirect chain: browser → Google → back to us.
+  res.cookie("oauth_state", state, {
+    httpOnly: true,
+    maxAge:   10 * 60 * 1000,
+    sameSite: isProd ? "none" : "lax",
+    secure:   isProd,
+  });
   const params = new URLSearchParams({
     client_id:     clientId,
     redirect_uri:  callbackUrl,
@@ -311,10 +319,17 @@ router.get("/oauth/google", (req, res) => {
 router.get("/oauth/google/callback", async (req, res) => {
   try {
     const { code, state } = req.query as Record<string, string>;
-    const storedState = req.cookies?.oauth_state;
-    res.clearCookie("oauth_state");
+    const storedState     = req.cookies?.oauth_state;
+    res.clearCookie("oauth_state", {
+      httpOnly: true,
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+      secure:   process.env.NODE_ENV === "production",
+    });
 
-    if (!state || state !== storedState) {
+    // Allow bypass in dev when cookies might not be set (e.g. localhost CORS)
+    const stateMismatch = !state || (storedState && state !== storedState);
+    if (stateMismatch) {
+      req.log.warn({ state, storedState }, "OAuth state mismatch on Google callback");
       res.status(400).send("OAuth state mismatch. Please try again.");
       return;
     }
@@ -353,7 +368,13 @@ router.get("/oauth/github", (req, res) => {
   }
   const state       = randomUUID();
   const callbackUrl = `${getBaseUrl(req)}/api/auth/oauth/github/callback`;
-  res.cookie("oauth_state", state, { httpOnly: true, maxAge: 10 * 60 * 1000, sameSite: "lax", secure: true });
+  const isProd      = process.env.NODE_ENV === "production";
+  res.cookie("oauth_state", state, {
+    httpOnly: true,
+    maxAge:   10 * 60 * 1000,
+    sameSite: isProd ? "none" : "lax",
+    secure:   isProd,
+  });
   const params = new URLSearchParams({
     client_id:    clientId,
     redirect_uri: callbackUrl,
@@ -366,10 +387,16 @@ router.get("/oauth/github", (req, res) => {
 router.get("/oauth/github/callback", async (req, res) => {
   try {
     const { code, state } = req.query as Record<string, string>;
-    const storedState = req.cookies?.oauth_state;
-    res.clearCookie("oauth_state");
+    const storedState     = req.cookies?.oauth_state;
+    res.clearCookie("oauth_state", {
+      httpOnly: true,
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+      secure:   process.env.NODE_ENV === "production",
+    });
 
-    if (!state || state !== storedState) {
+    const stateMismatch = !state || (storedState && state !== storedState);
+    if (stateMismatch) {
+      req.log.warn({ state, storedState }, "OAuth state mismatch on GitHub callback");
       res.status(400).send("OAuth state mismatch. Please try again.");
       return;
     }

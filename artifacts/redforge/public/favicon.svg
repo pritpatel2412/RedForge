@@ -1,3 +1,44 @@
 <svg width="180" height="180" viewBox="0 0 180 180" fill="none" xmlns="http://www.w3.org/2000/svg">
-<rect width="180" height="180" rx="36" fill="#FF3C00"/>
+  <!-- Background rounded square -->
+  <rect width="180" height="180" rx="36" fill="#0a0a0a"/>
+
+  <!-- Red gradient background glow -->
+  <defs>
+    <radialGradient id="glow" cx="50%" cy="40%" r="60%">
+      <stop offset="0%" stop-color="#FF3C00" stop-opacity="0.25"/>
+      <stop offset="100%" stop-color="#0a0a0a" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="shieldGrad" x1="90" y1="30" x2="90" y2="155" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FF6B35"/>
+      <stop offset="100%" stop-color="#CC2200"/>
+    </linearGradient>
+    <linearGradient id="innerGrad" x1="90" y1="50" x2="90" y2="135" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FF4D1C"/>
+      <stop offset="100%" stop-color="#8B1A00"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Glow overlay -->
+  <rect width="180" height="180" rx="36" fill="url(#glow)"/>
+
+  <!-- Shield body -->
+  <path d="M90 28 L148 52 L148 98 C148 128 90 158 90 158 C90 158 32 128 32 98 L32 52 Z"
+        fill="url(#shieldGrad)" opacity="0.15" stroke="#FF3C00" stroke-width="2" stroke-opacity="0.6"/>
+
+  <!-- Inner shield -->
+  <path d="M90 40 L138 60 L138 97 C138 122 90 146 90 146 C90 146 42 122 42 97 L42 60 Z"
+        fill="url(#innerGrad)" opacity="0.9"/>
+
+  <!-- "RF" lettermark -->
+  <!-- R -->
+  <path d="M62 72 L62 112 M62 72 L76 72 C82 72 86 76 86 83 C86 90 82 94 76 94 L62 94 M76 94 L86 112"
+        stroke="white" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <!-- Crossbar of R -->
+
+  <!-- Lightning bolt / forge symbol -->
+  <path d="M98 70 L88 100 L96 100 L86 130 L108 95 L99 95 L111 70 Z"
+        fill="white" opacity="0.95"/>
+
+  <!-- Bottom glow line -->
+  <rect x="50" y="162" width="80" height="3" rx="1.5" fill="#FF3C00" opacity="0.6"/>
 </svg>

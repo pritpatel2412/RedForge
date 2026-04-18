@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
-import { Search, Bell, LogOut, X, LayoutDashboard, FolderOpen, Scan, ShieldAlert, BarChart2, FileText, Settings, Key, CreditCard, MessageSquare, ChevronRight, Check } from "lucide-react";
+import { Search, Bell, Star, LogOut, X, LayoutDashboard, FolderOpen, Scan, ShieldAlert, BarChart2, FileText, Settings, Key, CreditCard, MessageSquare, ChevronRight, Check } from "lucide-react";
 import { useLogout } from "@workspace/api-client-react";
 import { useQueryClient, useQuery, useMutation } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
@@ -165,6 +165,68 @@ function UserAvatar({ name, size = 28 }: { name: string; size?: number }) {
   );
 }
 
+function GithubStarButton() {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <motion.a
+      href="https://github.com/pritpatel2412/RedForge"
+      target="_blank"
+      rel="noopener noreferrer"
+      className="relative shrink-0 flex items-center justify-center p-[1px] rounded-lg group"
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      initial={false}
+    >
+      {/* Animated Gradient Border */}
+      <AnimatePresence>
+        {hovered && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            style={{
+              position: "absolute",
+              inset: -1,
+              borderRadius: 9,
+              background: "linear-gradient(135deg, hsl(348,83%,55%), hsl(20,100%,55%), hsl(280,70%,60%))",
+              filter: "blur(4px)",
+              zIndex: 0,
+            }}
+          />
+        )}
+      </AnimatePresence>
+      
+      {/* The border line itself */}
+      <div 
+        style={{
+          position: "absolute",
+          inset: 0,
+          borderRadius: 8,
+          background: hovered 
+            ? "linear-gradient(135deg, hsl(348,83%,55%), hsl(20,100%,55%), hsl(280,70%,60%))"
+            : "oklch(20% 0 0)",
+          zIndex: 1,
+          transition: "background 0.3s ease"
+        }}
+      />
+
+      {/* Button Body */}
+      <motion.div
+        whileTap={{ scale: 0.96 }}
+        className="relative px-3 h-[28px] rounded-[7px] flex items-center gap-2 text-xs font-semibold overflow-hidden z-10"
+        style={{ 
+          background: "oklch(8% 0 0)",
+          color: hovered ? "white" : "oklch(70% 0 0)",
+          transition: "color 0.3s ease"
+        }}
+      >
+        <Star className={`w-3.5 h-3.5 transition-transform duration-300 ${hovered ? "scale-110 fill-white" : ""}`} />
+        <span className="hidden lg:inline-block">Star Project</span>
+      </motion.div>
+    </motion.a>
+  );
+}
+
 export function Header({ user }: { user?: User }) {
   const [location, setLocation] = useLocation();
   const queryClient = useQueryClient();
@@ -257,6 +319,11 @@ export function Header({ user }: { user?: User }) {
         </div>
 
         <div className="flex items-center gap-2">
+          {/* GitHub Star Button */}
+          <GithubStarButton />
+
+          <div className="w-px h-5 bg-border mx-1" />
+
           {/* Notification bell */}
           <div className="relative" ref={notifRef}>
             <motion.button

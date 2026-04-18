@@ -14,15 +14,20 @@ import { runXSSDetectionModule }   from "./modules/xssDetection.js";
 import { runSSRFRedirectModule }   from "./modules/ssrfRedirect.js";
 import { runDNSSecurityModule }    from "./modules/dnsSecurity.js";
 import { runAPISecurityModule }    from "./modules/apiSecurity.js";
+import { runWordPressModule }      from "./modules/wordpressScanner.js";
 import { correlateFindings, computeRiskScore } from "./modules/correlationEngine.js";
+import { enrichWithRemediation }  from "./modules/remediationEngine.js";
+import { enrichWithCompliance }   from "./modules/complianceMapping.js";
+import { enrichCVEs, attachCvesToFinding } from "./modules/cveEnrichment.js";
+import { computeScanDiff }        from "./modules/scanDiff.js";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const APP_URL = process.env.REPLIT_DEV_DOMAIN
   ? `https://${process.env.REPLIT_DEV_DOMAIN}`
   : process.env.APP_URL || "http://localhost:3000";
 
-const SCANNER_UA = "RedForge-Scanner/3.0 (+https://redforge.io)";
-const ENGINE_VERSION = "3.0";
+const SCANNER_UA = "RedForge-Scanner/3.1 (+https://redforge.io)";
+const ENGINE_VERSION = "3.1";
 
 // ── Utilities ─────────────────────────────────────────────────────────────────
 function sleep(ms: number) {
@@ -271,6 +276,7 @@ export async function runRealScan(
       ssrfFindings,
       dnsFindings,
       apiFindings,
+      wpFindings,
     ] = await Promise.all([
       runModuleSafe("TLS/Cookies",         scanId, () => runTLSCookiesModule(ctx)),
       runModuleSafe("Headers",             scanId, () => runHeadersModule(ctx)),
@@ -281,11 +287,12 @@ export async function runRealScan(
       runModuleSafe("SSRF/Redirect",       scanId, () => runSSRFRedirectModule(ctx)),
       runModuleSafe("DNS Security",        scanId, () => runDNSSecurityModule(ctx)),
       runModuleSafe("API Security",        scanId, () => runAPISecurityModule(ctx)),
+      runModuleSafe("WordPress",           scanId, () => runWordPressModule(ctx)),
     ]);
 
     findings.push(...tlsFindings, ...headerFindings, ...infoFindings,
       ...authFindings, ...supplyFindings, ...xssFindings, ...ssrfFindings,
-      ...dnsFindings, ...apiFindings);
+      ...dnsFindings, ...apiFindings, ...wpFindings);
 
     await addLog(scanId, "INFO", `✓ Parallel modules complete — ${findings.length} raw findings`);
 
@@ -507,12 +514,56 @@ If none, return [].`;
     }
     await addLog(scanId, "INFO", `╚══════════════════════════════════════════════════════════╝`);
 
+    // ── Phase 6.5: Enrichment Pass ──────────────────────────────────────────
+    await addLog(scanId, "INFO", "Phase 6.5 — Enrichment: remediation code · CVE lookup · compliance mapping · scan diff...");
+
+    // Run CVE enrichment and enrichment passes in parallel
+    const cveData = await enrichCVEs(bodyText, resHeaders).catch(() => []);
+
+    // Apply all enrichment passes
+    let enrichedFindings = enrichWithRemediation(dedupedFindings);
+    enrichedFindings = enrichWithCompliance(enrichedFindings);
+
+    // Attach CVEs to matching findings
+    enrichedFindings = enrichedFindings.map(f => ({
+      ...f,
+      cves: attachCvesToFinding(f.title, f.evidence, cveData),
+    }));
+
+    // Count enriched findings
+    const remCount  = enrichedFindings.filter(f => f.remediationCode?.length).length;
+    const cveCount  = enrichedFindings.filter(f => f.cves?.length).length;
+    const compCount = enrichedFindings.filter(f => f.compliance).length;
+    await addLog(scanId, "INFO", `✓ Enrichment complete: ${remCount} with fix code · ${cveCount} with CVEs · ${compCount} with compliance mapping`);
+
+    // Scan diff (compare to previous scan)
+    const scan = await db.select().from(scansTable).where(eq(scansTable.id, scanId)).limit(1).then(r => r[0]);
+    let scanDiff = null;
+    if (scan) {
+      const severityMap: Record<string, string> = {};
+      enrichedFindings.forEach(f => { severityMap[f.title] = f.severity; });
+      scanDiff = await computeScanDiff(
+        scanId,
+        scan.projectId,
+        enrichedFindings.map(f => f.title),
+        severityMap
+      ).catch(() => null);
+      if (scanDiff) {
+        await addLog(scanId, "INFO",
+          `Scan diff: ${scanDiff.newFindings.length} new · ${scanDiff.resolvedFindings.length} resolved · fix rate ${scanDiff.fixRate}%`);
+      }
+    }
+
     // ── Persist Findings ─────────────────────────────────────────────────────
     const scan = await db.select().from(scansTable).where(eq(scansTable.id, scanId)).limit(1).then(r => r[0]);
     if (!scan) return;
 
     const insertedFindings: any[] = [];
-    for (const f of dedupedFindings) {
+    for (const f of enrichedFindings) {
+      const remCode = f.remediationCode ? JSON.stringify(f.remediationCode) : null;
+      const compliance = f.compliance   ? JSON.stringify(f.compliance)       : null;
+      const cves       = f.cves?.length ? JSON.stringify(f.cves)             : null;
+
       const [ins] = await db.insert(findingsTable).values({
         scanId,
         projectId: scan.projectId,
@@ -525,7 +576,7 @@ If none, return [].`;
         cwe: f.cwe || null,
         owasp: f.owasp || null,
         pocCode: f.pocCode || null,
-        fixPatch: f.fixPatch || null,
+        fixPatch: f.fixPatch || (remCode ? `See remediationCode field` : null),
         fixExplanation: f.fixExplanation || null,
       }).returning();
       insertedFindings.push(ins);

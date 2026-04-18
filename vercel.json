@@ -5,39 +5,8 @@
   "buildCommand": "pnpm --filter @workspace/api-server run build && pnpm --filter @workspace/redforge run build",
   "routes": [
     {
-      "src": "/api/(.*)",
-      "dest": "api/index.ts"
-    },
-    {
-      "handle": "filesystem"
-    },
-    {
-      "src": "/images/(.*)",
-      "dest": "artifacts/redforge/dist/public/images/$1"
-    },
-    {
-      "src": "/favicon.svg",
-      "dest": "artifacts/redforge/dist/public/favicon.svg"
-    },
-    {
-      "src": "/logo.png",
-      "dest": "artifacts/redforge/dist/public/logo.png"
-    },
-    {
-      "src": "/email-logo.png",
-      "dest": "artifacts/redforge/dist/public/email-logo.png"
-    },
-    {
-      "src": "/opengraph.jpg",
-      "dest": "artifacts/redforge/dist/public/opengraph.jpg"
-    },
-    {
-      "src": "/assets/(.*)",
-      "dest": "artifacts/redforge/dist/public/assets/$1"
-    },
-    {
       "src": "/(.*)",
-      "dest": "artifacts/redforge/dist/public/index.html"
+      "dest": "api/index.ts"
     }
   ]
 }

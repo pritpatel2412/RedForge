@@ -1,6 +1,7 @@
-import { db, scansTable, findingsTable, scanLogsTable, projectsTable, workspacesTable } from "@workspace/db";
+import { db, scansTable, findingsTable, scanLogsTable, projectsTable, workspacesTable, workspaceMembersTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { sendScanComplete, sendCriticalFinding } from "../notifications/slack.js";
+import { createNotification } from "../notifications/create.js";
 import type { ScanMode, FindingInput, ScanContext } from "./modules/types.js";
 
 // ── Module imports ────────────────────────────────────────────────────────────
@@ -597,6 +598,39 @@ If none, return [].`;
     const [project] = await db.select().from(projectsTable).where(eq(projectsTable.id, scan.projectId)).limit(1);
     if (project) {
       const [workspace] = await db.select().from(workspacesTable).where(eq(workspacesTable.id, project.workspaceId)).limit(1);
+
+      // ── In-app notifications for all workspace members ──────────────────────
+      const members = await db.select().from(workspaceMembersTable)
+        .where(eq(workspaceMembersTable.workspaceId as any, project.workspaceId));
+
+      for (const member of members) {
+        // Overall scan complete notification
+        const emoji = criticalCount > 0 ? "🚨" : highCount > 0 ? "⚠️" : "✅";
+        const type  = criticalCount > 0 ? "error" : highCount > 0 ? "warning" : "success";
+        createNotification({
+          userId:      member.userId,
+          workspaceId: project.workspaceId,
+          type,
+          title:       `${emoji} Scan complete — ${project.name}`,
+          body:        `Found ${totalFindings} issue${totalFindings !== 1 ? "s" : ""} (${criticalCount} critical, ${highCount} high). Risk score: ${riskScore.toFixed(1)}/10`,
+          link:        `/scans/${scanId}`,
+        }).catch(() => {});
+
+        // Per-critical finding urgent notification
+        const criticalFindings = insertedFindings.filter(f => f.severity === "CRITICAL");
+        for (const cf of criticalFindings.slice(0, 3)) {
+          createNotification({
+            userId:      member.userId,
+            workspaceId: project.workspaceId,
+            type:        "error",
+            title:       `🔴 Critical: ${cf.title.slice(0, 80)}`,
+            body:        `Detected on ${project.name}. ${cf.description?.slice(0, 120) || ""}`,
+            link:        `/findings?scan=${scanId}`,
+          }).catch(() => {});
+        }
+      }
+
+      // Slack (existing)
       const webhookUrl = workspace?.slackWebhookUrl;
       if (webhookUrl) {
         const criticals = insertedFindings.filter(f => f.severity === "CRITICAL");
@@ -618,5 +652,27 @@ If none, return [].`;
       level: "ERROR",
       message: `Scan failed: ${err instanceof Error ? err.message : "Unknown error"}`,
     }).catch(() => {});
+
+    // Notify workspace members of failure
+    try {
+      const [scan] = await db.select().from(scansTable).where(eq(scansTable.id, scanId)).limit(1);
+      if (scan) {
+        const [project] = await db.select().from(projectsTable).where(eq(projectsTable.id, scan.projectId)).limit(1);
+        if (project) {
+          const members = await db.select().from(workspaceMembersTable)
+            .where(eq(workspaceMembersTable.workspaceId as any, project.workspaceId));
+          for (const member of members) {
+            createNotification({
+              userId:      member.userId,
+              workspaceId: project.workspaceId,
+              type:        "error",
+              title:       `❌ Scan failed — ${project.name}`,
+              body:        `The scan could not complete. ${err instanceof Error ? err.message.slice(0, 100) : "Unknown error"}`,
+              link:        `/scans/${scanId}`,
+            }).catch(() => {});
+          }
+        }
+      }
+    } catch { /* ignore — failure notification is best-effort */ }
   }
 }

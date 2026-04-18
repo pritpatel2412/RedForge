@@ -6,3 +6,4 @@ export * from "./chat.js";
 export * from "./attack-graph.js";
 export * from "./coupons.js";
 export * from "./activity.js";
+export * from "./notifications.js";

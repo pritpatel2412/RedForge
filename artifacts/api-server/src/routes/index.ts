@@ -13,6 +13,7 @@ import chatRouter from "./chat.js";
 import attackGraphRouter from "./attack-graph.js";
 import adminRouter from "./admin.js";
 import couponsRouter from "./coupons.js";
+import notificationsRouter from "./notifications.js";
 
 const router = Router();
 
@@ -30,5 +31,6 @@ router.use("/chat", chatRouter);
 router.use("/attack-graph", attackGraphRouter);
 router.use("/admin", adminRouter);
 router.use("/coupons", couponsRouter);
+router.use("/notifications", notificationsRouter);
 
 export default router;

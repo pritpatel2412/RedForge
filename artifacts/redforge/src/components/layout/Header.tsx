@@ -1,8 +1,8 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { Search, Bell, LogOut, X, LayoutDashboard, FolderOpen, Scan, ShieldAlert, BarChart2, FileText, Settings, Key, CreditCard, MessageSquare, ChevronRight, Check } from "lucide-react";
 import { useLogout } from "@workspace/api-client-react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery, useMutation } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import type { User } from "@workspace/api-client-react";
 
@@ -21,33 +21,62 @@ const SEARCH_ITEMS = [
   { label: "Billing",           path: "/settings/billing",  icon: CreditCard,      description: "Plans & billing" },
 ];
 
-// ── Notifications store (local, persist in sessionStorage) ───────────────────
-const DEFAULT_NOTIFICATIONS = [
-  { id: "n1", title: "RedForge is in Beta", body: "Some features are still being polished. Report issues to try.prit24@gmail.com", time: "Just now", read: false, type: "info" },
-  { id: "n2", title: "AI Engine Upgraded", body: "FORGE-1 now uses GLM-5-plus (744B) for deeper security reasoning.", time: "2h ago", read: false, type: "success" },
-  { id: "n3", title: "Attack Graph Ready", body: "Automated attack chains now prioritized over social-engineering paths.", time: "1d ago", read: true, type: "success" },
-];
+// ── Real notifications hook ───────────────────────────────────────────────────
+const NOTIF_KEY = "/api/notifications";
+
+function timeAgo(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 1)  return "Just now";
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  return `${Math.floor(h / 24)}d ago`;
+}
 
 function useNotifications() {
-  const [items, setItems] = useState(() => {
-    try {
-      const stored = sessionStorage.getItem("rf_notifications");
-      return stored ? JSON.parse(stored) : DEFAULT_NOTIFICATIONS;
-    } catch { return DEFAULT_NOTIFICATIONS; }
+  const qc = useQueryClient();
+
+  const { data: items = [] } = useQuery({
+    queryKey: [NOTIF_KEY],
+    queryFn: async () => {
+      const r = await fetch(NOTIF_KEY, { credentials: "include" });
+      if (!r.ok) return [];
+      return r.json();
+    },
+    refetchInterval: 30_000,
+    staleTime:       15_000,
   });
 
-  const save = (updated: typeof items) => {
-    setItems(updated);
-    sessionStorage.setItem("rf_notifications", JSON.stringify(updated));
+  const markAllMutation = useMutation({
+    mutationFn: () => fetch(`${NOTIF_KEY}/read-all`, { method: "PATCH", credentials: "include" }),
+    onMutate: async () => {
+      await qc.cancelQueries({ queryKey: [NOTIF_KEY] });
+      qc.setQueryData([NOTIF_KEY], (old: any[]) => (old || []).map((n: any) => ({ ...n, read: true })));
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: [NOTIF_KEY] }),
+  });
+
+  const dismissMutation = useMutation({
+    mutationFn: (id: string) => fetch(`${NOTIF_KEY}/${id}`, { method: "DELETE", credentials: "include" }),
+    onMutate: async (id) => {
+      await qc.cancelQueries({ queryKey: [NOTIF_KEY] });
+      qc.setQueryData([NOTIF_KEY], (old: any[]) => (old || []).filter((n: any) => n.id !== id));
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: [NOTIF_KEY] }),
+  });
+
+  const unreadCount = (items as any[]).filter((n: any) => !n.read).length;
+
+  return {
+    items,
+    unreadCount,
+    markAllRead: () => markAllMutation.mutate(),
+    markRead:    (_id: string) => { /* individual read handled on panel open (markAllRead) */ },
+    dismiss:     (id: string)  => dismissMutation.mutate(id),
   };
-
-  const markAllRead = () => save(items.map((n: any) => ({ ...n, read: true })));
-  const markRead = (id: string) => save(items.map((n: any) => n.id === id ? { ...n, read: true } : n));
-  const dismiss = (id: string) => save(items.filter((n: any) => n.id !== id));
-
-  const unreadCount = items.filter((n: any) => !n.read).length;
-  return { items, unreadCount, markAllRead, markRead, dismiss };
 }
+
 
 // ── Page titles ───────────────────────────────────────────────────────────────
 const PAGE_TITLES: Record<string, string> = {
@@ -265,19 +294,27 @@ export function Header({ user }: { user?: User }) {
 
                   {/* Items */}
                   <div className="max-h-72 overflow-y-auto">
-                    {notifications.length === 0 ? (
-                      <p className="text-xs text-muted-foreground text-center py-8">No notifications</p>
-                    ) : notifications.map((n: any) => (
+                    {(notifications as any[]).length === 0 ? (
+                      <div className="flex flex-col items-center justify-center py-10 gap-2">
+                        <Bell className="w-6 h-6 text-zinc-700" />
+                        <p className="text-xs text-muted-foreground">You're all caught up!</p>
+                      </div>
+                    ) : (notifications as any[]).map((n: any) => (
                       <div
                         key={n.id}
-                        className={`flex gap-3 px-4 py-3 border-b border-border/50 last:border-0 hover:bg-white/3 transition-colors ${!n.read ? "bg-primary/5" : ""}`}
+                        className={`flex gap-3 px-4 py-3 border-b border-border/50 last:border-0 hover:bg-white/3 transition-colors cursor-pointer ${!n.read ? "bg-primary/5" : ""}`}
+                        onClick={() => { if (n.link) setLocation(n.link); }}
                       >
                         {/* Color dot */}
-                        <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${n.type === "success" ? "bg-emerald-400" : n.type === "warning" ? "bg-amber-400" : "bg-blue-400"}`} />
+                        <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${
+                          n.type === "success" ? "bg-emerald-400" :
+                          n.type === "warning" ? "bg-amber-400"  :
+                          n.type === "error"   ? "bg-red-400"    : "bg-blue-400"
+                        }`} />
                         <div className="flex-1 min-w-0">
                           <p className="text-xs font-semibold text-white">{n.title}</p>
                           <p className="text-[11px] text-zinc-500 mt-0.5 leading-relaxed">{n.body}</p>
-                          <p className="text-[10px] text-zinc-600 mt-1">{n.time}</p>
+                          <p className="text-[10px] text-zinc-600 mt-1">{timeAgo(n.createdAt)}</p>
                         </div>
                         <button onClick={() => dismiss(n.id)} className="text-zinc-600 hover:text-zinc-400 shrink-0 mt-0.5">
                           <X className="w-3 h-3" />

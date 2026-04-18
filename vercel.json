@@ -4,34 +4,8 @@
   "installCommand": "npm i -g pnpm && pnpm install --frozen-lockfile",
   "buildCommand": "pnpm --filter @workspace/api-server run build && pnpm --filter @workspace/redforge run build",
   "outputDirectory": "artifacts/redforge/dist",
-  "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "api/index.ts"
-    },
-    {
-      "src": "/assets/(.*)",
-      "dest": "/assets/$1"
-    },
-    {
-      "src": "/(favicon\\.ico|logo\\.png|robots\\.txt|sitemap\\.xml)",
-      "dest": "/$1"
-    },
-    {
-      "src": "/(.*\\.js)",
-      "dest": "/$1"
-    },
-    {
-      "src": "/(.*\\.css)",
-      "dest": "/$1"
-    },
-    {
-      "src": "/(.*\\.woff2?|.*\\.ttf|.*\\.eot|.*\\.svg|.*\\.png|.*\\.jpg|.*\\.webp)",
-      "dest": "/$1"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "api/index.ts"
-    }
+  "rewrites": [
+    { "source": "/api/:path*", "destination": "/api/index.ts" },
+    { "source": "/:path*",     "destination": "/index.html" }
   ]
 }

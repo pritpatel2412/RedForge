@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
@@ -17,6 +18,79 @@ import {
   ShieldAlert,
 } from "lucide-react";
 import type { Workspace, User } from "@workspace/api-client-react";
+
+// ── Workspace Avatar (DiceBear "shapes" — geometric/abstract, great for orgs) ─
+function WorkspaceAvatar({ name, size = 28 }: { name: string; size?: number }) {
+  const [hovered, setHovered] = useState(false);
+  const [imgError, setImgError] = useState(false);
+  const initial = name.charAt(0).toUpperCase();
+  const borderRadius = size * 0.35;
+  const src = `https://api.dicebear.com/7.x/shapes/svg?seed=${encodeURIComponent(name)}&backgroundColor=transparent`;
+
+  return (
+    <div
+      className="shrink-0 relative"
+      style={{ width: size, height: size }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      {/* Gradient ring */}
+      <div
+        style={{
+          position: "absolute",
+          inset: -2,
+          borderRadius: borderRadius + 3,
+          background: hovered
+            ? "linear-gradient(135deg, hsl(348,83%,55%), hsl(20,100%,55%), hsl(280,70%,60%))"
+            : "linear-gradient(135deg, hsl(348,83%,40%), hsl(20,100%,50%))",
+          transition: "background 0.25s ease, box-shadow 0.25s ease",
+          boxShadow: hovered ? "0 0 12px 2px hsl(348 83% 40% / 0.45)" : "none",
+        }}
+      />
+      {/* Avatar surface */}
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          borderRadius,
+          overflow: "hidden",
+          background: "#0e0a0a",
+        }}
+      >
+        {!imgError ? (
+          <img
+            src={src}
+            alt={name}
+            style={{
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+              transform: hovered ? "scale(1.1)" : "scale(1)",
+              transition: "transform 0.3s cubic-bezier(0.22,1,0.36,1)",
+            }}
+            onError={() => setImgError(true)}
+          />
+        ) : (
+          <div
+            style={{
+              width: "100%",
+              height: "100%",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: size * 0.42,
+              fontWeight: 700,
+              color: "white",
+              background: "linear-gradient(135deg, hsl(348,83%,40%), hsl(20,100%,50%))",
+            }}
+          >
+            {initial}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 const navItems = [
   { name: "Dashboard",   href: "/dashboard",  icon: LayoutDashboard },
@@ -68,9 +142,7 @@ export function Sidebar({ workspace, user }: { workspace?: Workspace; user?: any
       {/* Workspace pill */}
       <div className="px-3 py-3 border-b border-border shrink-0">
         <div className="flex items-center gap-2.5 px-2 py-2 rounded-xl hover:bg-white/4 transition-colors cursor-default">
-          <div className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold text-white shrink-0" style={{ background: "linear-gradient(135deg, hsl(348,83%,40%), hsl(20,100%,50%))" }}>
-            {initial}
-          </div>
+          <WorkspaceAvatar name={workspace?.name || "Personal Workspace"} size={28} />
           <div className="min-w-0 flex-1">
             <p className="text-xs font-semibold text-white truncate leading-tight">{workspace?.name || "Personal Workspace"}</p>
             <p className="text-[10px] text-muted-foreground">{plan} plan</p>

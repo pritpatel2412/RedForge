@@ -64,11 +64,6 @@ router.get("/:id", requireAuth, async (req, res) => {
     const [prevScan] = await db.select().from(scansTable)
       .where(and(
         eq(scansTable.projectId as any, scan.projectId),
-        eq(scansTable.status as any, "COMPLETED"),
-        gt(scansTable.createdAt as any, new Date(0)) // Trick to ensure order works well with complex filters
-      ))
-      .where(and(
-        eq(scansTable.projectId as any, scan.projectId),
         eq(scansTable.status as any, "COMPLETED")
       ))
       .orderBy(desc(scansTable.createdAt))

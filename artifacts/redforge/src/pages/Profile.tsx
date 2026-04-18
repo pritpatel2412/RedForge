@@ -238,6 +238,20 @@ function PwdField({ label, value, onChange, placeholder }: {
   );
 }
 
+function NotificationToggle({ label, description, checked, onCheckedChange, disabled }: {
+  label: string; description: string; checked: boolean; onCheckedChange: (v: boolean) => void; disabled?: boolean;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-4 py-1">
+      <div className="flex-1">
+        <p className="text-sm font-medium text-white">{label}</p>
+        <p className="text-xs text-zinc-500">{description}</p>
+      </div>
+      <Switch checked={checked} onCheckedChange={onCheckedChange} disabled={disabled} />
+    </div>
+  );
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 export default function ProfilePage() {
   const qc = useQueryClient();
@@ -537,21 +551,21 @@ export default function ProfilePage() {
               label="Email Notifications"
               description="Receive account and security related updates via email."
               checked={user?.notifyEmail ?? true}
-              onCheckedChange={(v) => updateProfile.mutate({ notifyEmail: v })}
+              onCheckedChange={(v: boolean) => updateProfile.mutate({ notifyEmail: v })}
               disabled={updateProfile.isPending}
             />
             <NotificationToggle
               label="Security Alerts"
               description="Get immediate alerts for critical findings and breaches."
               checked={user?.notifySecurityAlerts ?? true}
-              onCheckedChange={(v) => updateProfile.mutate({ notifySecurityAlerts: v })}
+              onCheckedChange={(v: boolean) => updateProfile.mutate({ notifySecurityAlerts: v })}
               disabled={updateProfile.isPending}
             />
             <NotificationToggle
               label="Weekly Summary"
               description="A consolidated report of your security activity."
               checked={user?.notifyWeeklySummary ?? true}
-              onCheckedChange={(v) => updateProfile.mutate({ notifyWeeklySummary: v })}
+              onCheckedChange={(v: boolean) => updateProfile.mutate({ notifyWeeklySummary: v })}
               disabled={updateProfile.isPending}
             />
           </div>

@@ -555,7 +555,7 @@ If none, return [].`;
     }
 
     // ── Persist Findings ─────────────────────────────────────────────────────
-    const scan = await db.select().from(scansTable).where(eq(scansTable.id, scanId)).limit(1).then(r => r[0]);
+    // `scan` was already fetched above in Phase 6.5
     if (!scan) return;
 
     const insertedFindings: any[] = [];

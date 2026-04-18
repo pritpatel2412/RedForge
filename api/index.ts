@@ -7,7 +7,6 @@ const handler = async (req: any, res: any) => {
     const { default: bundledHandler } = await import(bundledHandlerPath);
     return (bundledHandler as any)(req, res);
   } catch (err: any) {
-    console.error("API bootstrap failure:", err);
     return res.status(500).json({
       error: "API bootstrap failure",
       message: "The API server bundle failed to load. Check build logs.",

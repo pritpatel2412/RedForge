@@ -7,7 +7,8 @@ import { requireAuth } from "../lib/auth.js";
 const router = Router();
 
 const NIM_BASE  = "https://integrate.api.nvidia.com/v1";
-const NIM_MODEL = process.env.NVIDIA_MODEL || "meta/llama-3.1-70b-instruct";
+const PRIMARY_MODEL = process.env.NVIDIA_MODEL || "meta/llama-3.1-405b-instruct";
+const FALLBACK_MODEL = process.env.NVIDIA_FALLBACK_MODEL || "nvidia/llama-3.1-nemotron-70b-instruct";
 
 // ── Helper: build system prompt ───────────────────────────────────────────────
 async function buildSystemPrompt(workspace: any): Promise<string> {
@@ -619,7 +620,7 @@ router.post("/followups", requireAuth, async (req, res) => {
       method: "POST",
       headers: { "Content-Type": "application/json", "Authorization": `Bearer ${nimKey}` },
       body: JSON.stringify({
-        model: NIM_MODEL,
+        model: "meta/llama-3.1-8b-instruct", // Fast model for simple follow-up generations
         max_tokens: 200,
         stream: false,
         messages: [
@@ -678,8 +679,8 @@ router.post("/", requireAuth, async (req, res) => {
   res.setHeader("X-Accel-Buffering", "no");
   res.flushHeaders();
 
-  const primaryModel = NIM_MODEL;
-  const fallbackModel = "meta/llama-3.1-70b-instruct";
+  const primaryModel = PRIMARY_MODEL;
+  const fallbackModel = FALLBACK_MODEL;
 
   const runStream = async (model: string, isFallback: boolean = false) => {
     const isGlm = model.includes("glm-5");

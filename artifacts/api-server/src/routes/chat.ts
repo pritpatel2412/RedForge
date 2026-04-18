@@ -699,7 +699,7 @@ router.post("/", requireAuth, async (req, res) => {
         ],
         ...(isGlm ? { "extra_body": { "reasoning": true } } : {})
       }),
-      signal: AbortSignal.timeout(120000),
+      signal: AbortSignal.timeout(180000), // Increased to 3 minutes
     });
 
     if (!nimResp.ok) {
@@ -713,47 +713,61 @@ router.post("/", requireAuth, async (req, res) => {
     const decoder = new TextDecoder();
     let streamBuffer = "";
 
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      streamBuffer += decoder.decode(value, { stream: true });
-      const lines = streamBuffer.split("\n");
-      streamBuffer = lines.pop() || "";
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        
+        streamBuffer += decoder.decode(value, { stream: true });
+        const lines = streamBuffer.split("\n");
+        streamBuffer = lines.pop() || "";
 
-      for (const line of lines) {
-        if (!line.startsWith("data: ")) continue;
-        const data = line.slice(6).trim();
-        if (data === "[DONE]") {
-          res.write(`event: done\ndata: {}\n\n`);
-          res.end();
-          return;
-        }
-        try {
-          const parsed = JSON.parse(data);
-          const text = parsed.choices?.[0]?.delta?.content;
-          if (text) res.write(`data: ${JSON.stringify({ text })}\n\n`);
-          if (parsed.choices?.[0]?.finish_reason === "stop") {
-            res.write(`event: done\ndata: {}\n\n`);
-            res.end();
-            return;
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed || !trimmed.startsWith("data: ")) continue;
+          
+          const rawData = trimmed.slice(6).trim();
+          if (rawData === "[DONE]") return true;
+
+          try {
+            const parsed = JSON.parse(rawData);
+            const text = parsed.choices?.[0]?.delta?.content;
+            if (text) {
+              res.write(`data: ${JSON.stringify({ text })}\n\n`);
+            }
+            if (parsed.choices?.[0]?.finish_reason === "stop") return true;
+          } catch (e) {
+            // Ignore parse errors for partial chunks
           }
-        } catch {}
+        }
       }
+    } finally {
+      reader.releaseLock();
     }
+    return true;
   };
 
   try {
-    await runStream(primaryModel);
+    const success = await runStream(primaryModel);
+    if (success) {
+      res.write(`event: done\ndata: {}\n\n`);
+      res.end();
+    }
   } catch (err) {
     if (primaryModel !== fallbackModel) {
       console.error("Primary model failed, attempting fallback...", err);
       try {
+        // Optionally send a small reset indicator if needed, but for now just try fallback
         await runStream(fallbackModel, true);
+        res.write(`event: done\ndata: {}\n\n`);
+        res.end();
       } catch (fallbackErr) {
+        console.error("Fallback model also failed:", fallbackErr);
         res.write(`event: error\ndata: ${JSON.stringify({ message: fallbackErr instanceof Error ? fallbackErr.message : "Stream error" })}\n\n`);
         res.end();
       }
     } else {
+      console.error("Model failed:", err);
       res.write(`event: error\ndata: ${JSON.stringify({ message: err instanceof Error ? err.message : "Stream error" })}\n\n`);
       res.end();
     }

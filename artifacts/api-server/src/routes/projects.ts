@@ -86,9 +86,9 @@ router.get("/:id", requireAuth, async (req, res) => {
     const workspace = (req as any).workspace;
     const id = req.params.id as string;
 
-    const [project] = await db.select().from(projectsTable)
+    const project = (await db.select().from(projectsTable)
       .where(and(eq(projectsTable.id as any, id), eq(projectsTable.workspaceId as any, workspace.id)))
-      .limit(1);
+      .limit(1).then(r => r[0])) as any;
 
     if (!project) {
       res.status(404).json({ error: "Project not found" });
@@ -128,9 +128,9 @@ router.put("/:id", requireAuth, async (req, res) => {
     const id = req.params.id as string;
     const { name, description, targetUrl, status, slackWebhookUrl, githubRepo, githubBranch, githubToken } = req.body;
 
-    const [project] = await db.select().from(projectsTable)
+    const project = (await db.select().from(projectsTable)
       .where(and(eq(projectsTable.id as any, id), eq(projectsTable.workspaceId as any, workspace.id)))
-      .limit(1);
+      .limit(1).then(r => r[0])) as any;
 
     if (!project) {
       res.status(404).json({ error: "Project not found" });
@@ -166,9 +166,9 @@ router.delete("/:id", requireAuth, async (req, res) => {
     const workspace = (req as any).workspace;
     const id = req.params.id as string;
 
-    const [project] = await db.select().from(projectsTable)
+    const project = (await db.select().from(projectsTable)
       .where(and(eq(projectsTable.id as any, id), eq(projectsTable.workspaceId as any, workspace.id)))
-      .limit(1);
+      .limit(1).then(r => r[0])) as any;
 
     if (!project) {
       res.status(404).json({ error: "Project not found" });
@@ -192,9 +192,9 @@ router.post("/:id/scan", requireAuth, async (req, res) => {
     const validModes = ["PASSIVE", "ACTIVE", "CONTINUOUS"];
     const resolvedMode = validModes.includes(scanMode) ? scanMode : "PASSIVE";
 
-    const [project] = await db.select().from(projectsTable)
+    const project = (await db.select().from(projectsTable)
       .where(and(eq(projectsTable.id as any, id), eq(projectsTable.workspaceId as any, workspace.id)))
-      .limit(1);
+      .limit(1).then(r => r[0])) as any;
 
     if (!project) {
       res.status(404).json({ error: "Project not found" });
@@ -220,6 +220,3 @@ router.post("/:id/scan", requireAuth, async (req, res) => {
 });
 
 export default router;
-
-
-

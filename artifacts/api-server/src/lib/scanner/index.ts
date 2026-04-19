@@ -148,11 +148,14 @@ export async function runRealScan(
   targetUrl = targetUrl.replace(/^(https?:\/\/)(https?:\/\/)/, "$1");
 
   // Safety check: Don't run multiple scans for the same project concurrently
-  const scan = await db.select().from(scansTable).where(eq(scansTable.id, scanId)).limit(1).then(r => r[0]);
-  if (!scan) return;
+  const currentScan = await db.select().from(scansTable).where(eq(scansTable.id, scanId)).limit(1).then(r => r[0]) as any;
+  if (!currentScan) return;
+
+  const currentProject = await db.select().from(projectsTable).where(eq(projectsTable.id, currentScan.projectId)).limit(1).then(r => r[0]) as any;
+  if (!currentProject) return;
 
   const activeScan = await db.select().from(scansTable)
-    .where(and(eq(scansTable.projectId, scan.projectId), eq(scansTable.status, "RUNNING")))
+    .where(and(eq(scansTable.projectId, currentScan.projectId), eq(scansTable.status, "RUNNING")))
     .limit(1)
     .then((r: any[]) => r[0]);
 
@@ -234,8 +237,8 @@ export async function runRealScan(
     // Shared scan context for all modules
     const ctx: ScanContext = {
       scanId,
-      projectId: scan.projectId,
-      projectData: project,
+      projectId: currentScan.projectId,
+      projectData: currentProject,
       targetUrl,
       hostname,
       scanMode,
@@ -578,8 +581,7 @@ If none, return [].`;
     }
 
     // ── Persist Findings ─────────────────────────────────────────────────────
-    // `scan` was already fetched above in Phase 6.5
-    if (!scan) return;
+    if (!currentScan) return;
 
     const insertedFindings: any[] = [];
     for (const f of enrichedFindings) {

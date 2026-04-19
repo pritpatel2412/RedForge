@@ -12,7 +12,7 @@ export async function runGitHubSASTModule(ctx: ScanContext): Promise<FindingInpu
   const branch = projectData.githubBranch || "main";
   const token = projectData.githubToken;
 
-  await addLog(scanId, "INFO", `[GitHub] Initiating Static Analysis on ${repo} (${branch})...`);
+  await addLog("INFO", `[GitHub] Initiating Static Analysis on ${repo} (${branch})...`);
 
   const headers: Record<string, string> = {
     "Accept": "application/vnd.github.v3+json",
@@ -38,7 +38,7 @@ export async function runGitHubSASTModule(ctx: ScanContext): Promise<FindingInpu
       const resp = await safeFetch(url, { headers });
       
       if (resp && resp.status === 200) {
-        const data = await resp.json();
+        const data = await resp.json() as any;
         // If it's a file (not a directory)
         if (data.type === "file") {
           findings.push({
@@ -70,7 +70,7 @@ export async function runGitHubSASTModule(ctx: ScanContext): Promise<FindingInpu
       const url = `https://api.github.com/repos/${repo}/contents/${path}?ref=${branch}`;
       const resp = await safeFetch(url, { headers });
       if (resp && resp.status === 200) {
-        const data = await resp.json();
+        const data = await resp.json() as any;
         if (data.type === "file" && data.content) {
           const content = Buffer.from(data.content, "base64").toString("utf8");
           
@@ -118,7 +118,7 @@ export async function runGitHubSASTModule(ctx: ScanContext): Promise<FindingInpu
     const url = `https://api.github.com/repos/${repo}/contents/package.json?ref=${branch}`;
     const resp = await safeFetch(url, { headers });
     if (resp && resp.status === 200) {
-      const data = await resp.json();
+      const data = await resp.json() as any;
       const pkg = JSON.parse(Buffer.from(data.content, "base64").toString("utf8"));
       const deps = { ...(pkg.dependencies || {}), ...(pkg.devDependencies || {}) };
       
@@ -141,6 +141,6 @@ export async function runGitHubSASTModule(ctx: ScanContext): Promise<FindingInpu
     // Ignore
   }
 
-  await addLog(scanId, "INFO", `✓ GitHub SAST complete for ${repo}`);
+  await addLog("INFO", `✓ GitHub SAST complete for ${repo}`);
   return findings;
 }

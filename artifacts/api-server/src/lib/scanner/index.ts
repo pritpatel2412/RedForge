@@ -151,10 +151,9 @@ export async function runRealScan(
   if (!scan) return;
 
   const activeScan = await db.select().from(scansTable)
-    .where(eq(scansTable.projectId, scan.projectId))
-    .where(eq(scansTable.status, "RUNNING"))
+    .where(and(eq(scansTable.projectId, scan.projectId), eq(scansTable.status, "RUNNING")))
     .limit(1)
-    .then(r => r[0]);
+    .then((r: any[]) => r[0]);
 
   if (activeScan && activeScan.id !== scanId) {
     await db.update(scansTable)

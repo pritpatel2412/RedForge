@@ -388,12 +388,18 @@ router.post("/register", async (req, res) => {
 ═══════════════════════════════════════════════════ */
 
 function getBaseUrl(_req?: any): string {
-  // Always use APP_URL for OAuth callbacks — header sniffing is unreliable
-  // on the callback leg (no origin/referer from OAuth providers).
+  // Priority 1: Use the explicit APP_URL environment variable (from .env)
   const appUrl = process.env.APP_URL;
-  if (appUrl) return appUrl.replace(/\/+$/, "");
+  if (appUrl) {
+    return appUrl.replace(/\/+$/, "");
+  }
 
-  // Fallback for local dev only
+  // Priority 2: Fallback to the known production domain
+  if (process.env.NODE_ENV === "production") {
+    return "https://redforgex.vercel.app";
+  }
+
+  // Priority 3: Final fallback for local development only
   return "http://localhost:5000";
 }
 

@@ -74,7 +74,7 @@ export function buildWelcomeEmail(name: string, trialEndsAt: Date | null): strin
       <div class="badge">Welcome to RedForge</div>
       <h1>You're in, ${name.split(" ")[0]}. 🔥</h1>
       <p>Your account is ready. RedForge gives you autonomous AI-driven penetration testing — finding real vulnerabilities before attackers do.</p>
-      <a class="btn" href="https://redforge.replit.app/dashboard">Open Dashboard →</a>
+      <a class="btn" href="https://redforgex.vercel.app/dashboard">Open Dashboard →</a>
       <hr class="divider">
       <h2>Your ${trialDays}-day trial includes:</h2>
       <ul class="feature-list">
@@ -97,7 +97,7 @@ export function buildTrialExpiringEmail(name: string, daysLeft: number, trialEnd
       <h1>${isUrgent ? "Last chance, " : "Hey, "}${name.split(" ")[0]}.</h1>
       <p>Your RedForge free trial ${isUrgent ? "ends today" : `expires in ${daysLeft} day${daysLeft > 1 ? "s" : ""}`} on <strong style="color:#e4e4e7">${trialEndsAt.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}</strong>.</p>
       <p>Upgrade now to keep access to all your scans, findings, and AI-driven security tools.</p>
-      <a class="btn" href="https://redforge.replit.app/settings/billing">Upgrade to Pro →</a>
+      <a class="btn" href="https://redforgex.vercel.app/settings/billing">Upgrade to Pro →</a>
       <hr class="divider">
       <div class="stat-grid">
         <div class="stat-box">
@@ -119,7 +119,7 @@ export function buildPlanChangedEmail(name: string, newPlan: string, changedBy =
       <div class="badge">Plan Updated</div>
       <h1>Your plan has been updated.</h1>
       <p>Hi ${name.split(" ")[0]}, your RedForge workspace plan has been changed to <strong style="color:#818cf8">${newPlan}</strong>${changedBy === "admin" ? " by the RedForge team" : ""}.</p>
-      <a class="btn" href="https://redforge.replit.app/dashboard">View Dashboard →</a>
+      <a class="btn" href="https://redforgex.vercel.app/dashboard">View Dashboard →</a>
     </div>
   `, `Your RedForge plan has been changed to ${newPlan}`);
 }
@@ -131,7 +131,7 @@ export function buildCouponAppliedEmail(name: string, couponCode: string, benefi
       <h1>Your coupon is active.</h1>
       <p>Hi ${name.split(" ")[0]}, coupon <strong style="color:#34d399; font-family:monospace">${couponCode}</strong> has been applied to your workspace.</p>
       <p><strong style="color:#e4e4e7">${benefit}</strong></p>
-      <a class="btn" href="https://redforge.replit.app/dashboard">Get Started →</a>
+      <a class="btn" href="https://redforgex.vercel.app/dashboard">Get Started →</a>
     </div>
   `, `Coupon ${couponCode} applied to your RedForge account`);
 }

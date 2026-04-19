@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db as dbRaw, projectsTable, scansTable, findingsTable, chatConversationsTable, chatMessagesTable } from "@workspace/db";
 const db = dbRaw as any;
-import { eq, desc, asc, and } from "drizzle-orm";
+import { eq, desc, asc, and, inArray } from "drizzle-orm";
 import { requireAuth } from "../lib/auth.js";
 
 const router = Router();
@@ -10,10 +10,14 @@ const NIM_BASE  = "https://integrate.api.nvidia.com/v1";
 const PRIMARY_MODEL = process.env.NVIDIA_MODEL || "meta/llama-3.1-405b-instruct";
 const FALLBACK_MODEL = process.env.NVIDIA_FALLBACK_MODEL || "nvidia/llama-3.1-nemotron-70b-instruct";
 
+// ── In-memory prompt cache to reduce per-message DB overhead ─────────────────
+const PROMPT_CACHE = new Map<string, { prompt: string; expires: number }>();
+const PROMPT_TTL = 60 * 1000; // 60 seconds
+
 // ── Helper: build system prompt ───────────────────────────────────────────────
 async function buildSystemPrompt(workspace: any): Promise<string> {
   const projects = await db.select().from(projectsTable)
-    .where(eq(projectsTable.workspaceId as any, workspace.id));
+    .where(eq(projectsTable.workspaceId, workspace.id));
 
   const projectIds = projects.map((p: any) => p.id);
   const projectMap = Object.fromEntries(projects.map((p: any) => [p.id, p.name]));
@@ -22,12 +26,25 @@ async function buildSystemPrompt(workspace: any): Promise<string> {
   let recentScans: any[] = [];
 
   if (projectIds.length > 0) {
-    const findings = await db.select().from(findingsTable).orderBy(desc(findingsTable.createdAt));
-    allFindings = findings
-      .filter((f: any) => projectIds.includes(f.projectId))
-      .map((f: any) => ({ ...f, projectName: projectMap[f.projectId] || "Unknown" }));
-    const scans = await db.select().from(scansTable).orderBy(desc(scansTable.createdAt));
-    recentScans = scans.filter((s: any) => projectIds.includes(s.projectId)).slice(0, 10);
+    // Optimized: Filter at database level and limit fetched rows
+    const findings = await db.select()
+      .from(findingsTable)
+      .where(inArray(findingsTable.projectId, projectIds))
+      .orderBy(desc(findingsTable.createdAt))
+      .limit(200);
+      
+    allFindings = findings.map((f: any) => ({ 
+      ...f, 
+      projectName: projectMap[f.projectId] || "Unknown" 
+    }));
+
+    const scans = await db.select()
+      .from(scansTable)
+      .where(inArray(scansTable.projectId, projectIds))
+      .orderBy(desc(scansTable.createdAt))
+      .limit(20);
+      
+    recentScans = scans;
   }
 
   const criticalFindings = allFindings.filter((f: any) => f.severity === "CRITICAL");
@@ -671,7 +688,18 @@ router.post("/", requireAuth, async (req, res) => {
     return;
   }
 
-  const systemPrompt = await buildSystemPrompt(workspace);
+  // Check for cached prompt first
+  const cached = PROMPT_CACHE.get(workspace.id);
+  let systemPrompt: string;
+  if (cached && cached.expires > Date.now()) {
+    systemPrompt = cached.prompt;
+  } else {
+    systemPrompt = await buildSystemPrompt(workspace);
+    PROMPT_CACHE.set(workspace.id, { 
+      prompt: systemPrompt, 
+      expires: Date.now() + PROMPT_TTL 
+    });
+  }
 
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");

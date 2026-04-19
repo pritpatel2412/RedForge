@@ -197,6 +197,32 @@ function matchesRule(findings: FindingInput[], rule: CorrelationRule): boolean {
   );
 }
 
+function scoreBusinessImpact(chainFindingSet: FindingInput[]): {
+  score: number;
+  level: "CRITICAL" | "HIGH" | "MEDIUM";
+  rationale: string;
+} {
+  let score = 0;
+  const tags = chainFindingSet.flatMap((f) => f.tags || []);
+  const text = chainFindingSet.map((f) => `${f.title} ${f.description}`).join(" ").toLowerCase();
+
+  if (tags.some((t) => t.includes("auth") || t.includes("session") || t.includes("account"))) score += 3;
+  if (tags.some((t) => t.includes("ssrf") || t.includes("sqli") || t.includes("rce"))) score += 3;
+  if (tags.some((t) => t.includes("xss") || t.includes("cors") || t.includes("redirect"))) score += 2;
+  if (text.includes("credential") || text.includes("token") || text.includes("cookie")) score += 2;
+  if (text.includes("customer") || text.includes("pii") || text.includes("payment")) score += 2;
+
+  const level = score >= 8 ? "CRITICAL" : score >= 5 ? "HIGH" : "MEDIUM";
+  const rationale =
+    level === "CRITICAL"
+      ? "Likely account/data compromise path with direct business impact."
+      : level === "HIGH"
+        ? "Exploit chain can expose sensitive operations or user data."
+        : "Chain is plausible but needs additional preconditions for full compromise.";
+
+  return { score: Math.min(10, score), level, rationale };
+}
+
 /**
  * Main correlation function — returns synthesized attack chain findings.
  */
@@ -217,16 +243,26 @@ export function correlateFindings(findings: FindingInput[]): FindingInput[] {
       .slice(0, 5)
       .join('\n');
 
+    const linkedSet = findings.filter((f) =>
+      chain.linkedFindings.some((tag) => f.tags?.some((ft) => ft.includes(tag))),
+    );
+    const impact = scoreBusinessImpact(linkedSet);
+
     chains.push({
       title: `🔗 ${chain.title}`,
-      description: `${chain.description}\n\n**Exploit Steps:**\n${chain.steps.join('\n')}\n\n**Built from vulnerabilities:**\n${linkedTitles}`,
+      description:
+        `${chain.description}\n\n` +
+        `**Business Impact Score:** ${impact.score}/10 (${impact.level})\n` +
+        `**Impact Rationale:** ${impact.rationale}\n\n` +
+        `**Exploit Steps:**\n${chain.steps.join('\n')}\n\n` +
+        `**Built from vulnerabilities:**\n${linkedTitles}`,
       endpoint: "multi-vector",
       severity: chain.severity,
       cvss: chain.cvss,
       cwe: "CWE-693",
       owasp: chain.owasp,
       confidence: 0.85,
-      tags: ["attack-chain", rule.id],
+      tags: ["attack-chain", rule.id, `business-impact-${impact.score}`],
       fixExplanation: chain.fixExplanation,
       pocCode: `# Attack chain: ${rule.id}\n# See individual finding PoC codes above for each component`,
     });

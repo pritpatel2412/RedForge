@@ -125,14 +125,14 @@ const PLANS = [
     features: [
       { text: "3 scan targets", included: true },
       { text: "50 scans / month", included: true },
-      { text: "Basic vulnerability detection", included: true },
-      { text: "OWASP Top 10 coverage", included: true },
+      { text: "Real HTTP scanning (PASSIVE mode)", included: true },
+      { text: "Attack-chain correlation + risk score", included: true },
       { text: "7-day finding history", included: true },
-      { text: "AI fix generation", included: false },
+      { text: "AI fix generation (PR-ready patches)", included: false },
       { text: "Slack notifications", included: false },
       { text: "CI/CD API access", included: false },
-      { text: "Custom scan policies", included: false },
-      { text: "Priority support", included: false },
+      { text: "ACTIVE mode probing", included: false },
+      { text: "Autonomous pentest agent", included: false },
     ]
   },
   {
@@ -148,14 +148,14 @@ const PLANS = [
     features: [
       { text: "Unlimited scan targets", included: true },
       { text: "Unlimited scans", included: true },
-      { text: "Advanced AI vulnerability engine", included: true },
-      { text: "Full OWASP + SANS coverage", included: true },
+      { text: "ACTIVE mode probing", included: true },
+      { text: "Autonomous pentest agent", included: true },
+      { text: "AI deep analysis (NVIDIA NIM)", included: true },
+      { text: "AI fix generation (PR-ready diffs)", included: true },
+      { text: "GitHub SAST integration (repo checks)", included: true },
+      { text: "Slack notifications", included: true },
+      { text: "CI/CD security gate (API)", included: true },
       { text: "90-day finding history", included: true },
-      { text: "AI fix generation + patches", included: true },
-      { text: "Slack & email alerts", included: true },
-      { text: "CI/CD API access", included: true },
-      { text: "Custom scan policies", included: false },
-      { text: "Priority support", included: false },
     ]
   },
   {
@@ -170,15 +170,10 @@ const PLANS = [
     ctaVariant: "secondary",
     features: [
       { text: "Everything in Pro", included: true },
-      { text: "Custom scan policies", included: true },
-      { text: "On-premise deployment", included: true },
-      { text: "SOC2 / HIPAA reports", included: true },
       { text: "Unlimited history retention", included: true },
-      { text: "SSO / SAML", included: true },
-      { text: "Dedicated Slack channel", included: true },
       { text: "Custom integrations", included: true },
-      { text: "SLA guarantees", included: true },
-      { text: "24/7 priority support", included: true },
+      { text: "Dedicated onboarding + SLA", included: true },
+      { text: "Custom policies & reporting", included: true },
     ]
   }
 ];

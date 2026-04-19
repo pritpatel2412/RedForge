@@ -71,6 +71,7 @@ export interface ScanContext {
   scanId: string;
   projectId: string;
   projectData: any;
+  workspacePlan?: "FREE" | "PRO" | "ENTERPRISE";
   targetUrl: string;
   hostname: string;
   scanMode: ScanMode;

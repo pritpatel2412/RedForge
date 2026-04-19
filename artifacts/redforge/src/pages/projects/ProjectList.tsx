@@ -4,7 +4,14 @@ import { Shield, Plus, ArrowRight, ExternalLink } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 
 export default function ProjectList() {
-  const { data: projects, isLoading } = useListProjects();
+  const { data: projects, isLoading } = useListProjects({
+    query: {
+      // Keep project counters in sync with scans/findings updates.
+      refetchInterval: 5000,
+      refetchIntervalInBackground: true,
+      refetchOnMount: "always",
+    } as any,
+  });
 
   if (isLoading) {
     return <div className="skeleton h-64 rounded-2xl" />;

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useListApiKeys, useDeleteApiKey } from "@workspace/api-client-react";
+import { useListApiKeys, useDeleteApiKey, useGetWorkspaceSettings } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import { Key, Trash2, Clock, Zap, Code2, Webhook, Lock } from "lucide-react";
@@ -26,6 +26,9 @@ const COMING_SOON_USES = [
 ];
 
 export default function ApiKeys() {
+  const { data: settings } = useGetWorkspaceSettings();
+  const plan = settings?.plan || "FREE";
+  const isPro = plan === "PRO" || plan === "ENTERPRISE";
   const { data: keys, isLoading } = useListApiKeys();
   const queryClient = useQueryClient();
 
@@ -43,6 +46,16 @@ export default function ApiKeys() {
   return (
     <SettingsLayout>
       <div className="space-y-6">
+
+        {!isPro && (
+          <div className="rounded-2xl border border-primary/25 p-5 text-sm text-zinc-300"
+               style={{ background: "linear-gradient(135deg, oklch(10% 0 0), oklch(8% 0 0))" }}>
+            <div className="font-semibold text-white mb-1">API keys are a Pro feature</div>
+            <div className="text-zinc-400">
+              Upgrade to <span className="text-primary font-medium">Pro</span> to enable CI/CD security gating and programmatic scan automation.
+            </div>
+          </div>
+        )}
 
         {/* ── Coming Soon Banner ─────────────────────────────────────── */}
         <motion.div
@@ -66,7 +79,7 @@ export default function ApiKeys() {
                 </span>
               </div>
               <p className="text-sm text-zinc-400 leading-relaxed">
-                RedForge is in early beta. API keys can be created but <span className="text-amber-400 font-medium">are not yet validated</span> on any endpoint — full programmatic access is coming in a future release.
+                RedForge API access is available on paid plans. Configure keys here and use them for CI/CD gating and automation.
               </p>
               <p className="text-xs text-zinc-600 mt-2">
                 Need early API access? Contact <a href="mailto:try.prit24@gmail.com" className="text-amber-400 hover:underline">try.prit24@gmail.com</a>
@@ -95,7 +108,7 @@ export default function ApiKeys() {
           ))}
         </div>
 
-        {/* ── Existing keys (read-only view) ────────────────────────── */}
+        {/* ── Existing keys ────────────────────────────────────────── */}
         <div className="bg-card border border-border rounded-2xl p-6 md:p-8">
           <div className="flex items-center justify-between mb-6 pb-5 border-b border-border">
             <div>
@@ -110,17 +123,18 @@ export default function ApiKeys() {
               </p>
             </div>
 
-            {/* Disabled Create Key button with tooltip */}
             <div className="relative group">
               <button
                 disabled
-                className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-white/5 border border-white/10 text-zinc-600 cursor-not-allowed"
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border ${
+                  isPro ? "bg-white/5 border-white/10 text-zinc-500 cursor-not-allowed" : "bg-white/5 border-white/10 text-zinc-600 cursor-not-allowed"
+                }`}
               >
                 <Lock className="w-3.5 h-3.5" />
                 Create Key
               </button>
-              <div className="absolute right-0 top-10 w-52 bg-zinc-900 border border-white/10 rounded-lg px-3 py-2 text-xs text-zinc-400 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 shadow-lg">
-                API key creation is disabled during beta. Contact sales to get early access.
+              <div className="absolute right-0 top-10 w-60 bg-zinc-900 border border-white/10 rounded-lg px-3 py-2 text-xs text-zinc-400 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 shadow-lg">
+                Key creation UI can be enabled next. For now, use the server API or contact admin.
               </div>
             </div>
           </div>

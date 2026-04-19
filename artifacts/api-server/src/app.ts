@@ -63,8 +63,18 @@ app.use(express.urlencoded({ extended: true }));
 // ── Cache GET API responses briefly to reduce redundant DB hits ───────────
 app.use("/api", (req: any, res: any, next: any) => {
   if (req.method === "GET") {
-    // Short cache: 10s for lists, 0 for auth/user
-    const noCache = ["/api/auth", "/api/me", "/api/workspace"];
+    // Do not cache auth or rapidly changing dashboard/project/scan data.
+    const noCache = [
+      "/api/auth",
+      "/api/me",
+      "/api/workspace",
+      "/api/projects",
+      "/api/scans",
+      "/api/findings",
+      "/api/dashboard",
+      "/api/attack-graph",
+      "/api/notifications",
+    ];
     const isNoCache = noCache.some((p: string) => req.path.startsWith(p.replace("/api", "")));
     if (!isNoCache) {
       res.setHeader("Cache-Control", "private, max-age=10, stale-while-revalidate=30");

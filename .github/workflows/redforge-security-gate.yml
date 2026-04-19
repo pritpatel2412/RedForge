@@ -1,0 +1,24 @@
+name: RedForge Security Gate
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  redforge-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Run RedForge CI gate
+        env:
+          REDFORGE_API_BASE: ${{ secrets.REDFORGE_API_BASE }}
+          REDFORGE_API_KEY: ${{ secrets.REDFORGE_API_KEY }}
+          REDFORGE_PROJECT_ID: ${{ secrets.REDFORGE_PROJECT_ID }}
+          REDFORGE_FAIL_ON: "CRITICAL,HIGH"
+          REDFORGE_MAX_SCAN_AGE_HOURS: "24"
+        run: node scripts/redforge-ci-gate.mjs
+

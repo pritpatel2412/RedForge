@@ -1,5 +1,5 @@
 import { pgTable, text, timestamp, varchar, uuid } from "drizzle-orm/pg-core";
-import { workspacesTable } from "./workspaces.js";
+import { workspacesTable } from "./workspaces";
 
 export const chatConversationsTable = pgTable("chat_conversations", {
   id: uuid("id").primaryKey().defaultRandom(),

@@ -4,6 +4,7 @@ import { eq, and } from "drizzle-orm";
 import { requireAuth } from "../lib/auth.js";
 import { randomUUID } from "crypto";
 import { createHash } from "crypto";
+import { isAtLeastPlan } from "../lib/plan.js";
 
 const router = Router();
 
@@ -14,6 +15,10 @@ function hashKey(key: string): string {
 router.get("/", requireAuth, async (req, res) => {
   try {
     const workspace = (req as any).workspace;
+    if (!isAtLeastPlan(workspace.plan, "PRO")) {
+      res.status(403).json({ error: "Upgrade to PRO to use API keys" });
+      return;
+    }
 
     const keys = await db.select().from(apiKeysTable)
       .where(eq(apiKeysTable.workspaceId as any, workspace.id));
@@ -35,6 +40,10 @@ router.get("/", requireAuth, async (req, res) => {
 router.post("/", requireAuth, async (req, res) => {
   try {
     const workspace = (req as any).workspace;
+    if (!isAtLeastPlan(workspace.plan, "PRO")) {
+      res.status(403).json({ error: "Upgrade to PRO to create API keys" });
+      return;
+    }
     const { name } = req.body;
 
     if (!name) {
@@ -70,6 +79,10 @@ router.post("/", requireAuth, async (req, res) => {
 router.delete("/:id", requireAuth, async (req, res) => {
   try {
     const workspace = (req as any).workspace;
+    if (!isAtLeastPlan(workspace.plan, "PRO")) {
+      res.status(403).json({ error: "Upgrade to PRO to manage API keys" });
+      return;
+    }
     const id = req.params.id as string;
 
     const [key] = await db.select().from(apiKeysTable)

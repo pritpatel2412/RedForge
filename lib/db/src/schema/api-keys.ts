@@ -1,7 +1,7 @@
 import { pgTable, text, timestamp, varchar, uuid } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
-import { workspacesTable } from "./workspaces.js";
+import { workspacesTable } from "./workspaces";
 
 export const apiKeysTable = pgTable("api_keys", {
   id: uuid("id").primaryKey().defaultRandom(),

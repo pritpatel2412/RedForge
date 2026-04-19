@@ -14,6 +14,7 @@ import attackGraphRouter from "./attack-graph.js";
 import adminRouter from "./admin.js";
 import couponsRouter from "./coupons.js";
 import notificationsRouter from "./notifications.js";
+import ciRouter from "./ci.js";
 
 const router = Router();
 
@@ -32,5 +33,6 @@ router.use("/attack-graph", attackGraphRouter);
 router.use("/admin", adminRouter);
 router.use("/coupons", couponsRouter);
 router.use("/notifications", notificationsRouter);
+router.use("/ci", ciRouter);
 
 export default router;

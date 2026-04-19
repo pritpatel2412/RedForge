@@ -3,6 +3,7 @@ import { db, workspacesTable, projectsTable, scansTable, findingsTable } from "@
 import { eq, desc, and } from "drizzle-orm";
 import { requireAuth } from "../lib/auth.js";
 import { sendTestMessage } from "../lib/notifications/slack.js";
+import { isAtLeastPlan } from "../lib/plan.js";
 
 const router = Router();
 
@@ -31,6 +32,11 @@ router.patch("/settings", requireAuth, async (req, res) => {
     const workspace = (req as any).workspace;
     const { name, slackWebhookUrl } = req.body;
 
+    if (slackWebhookUrl !== undefined && !isAtLeastPlan(workspace.plan, "PRO")) {
+      res.status(403).json({ error: "Upgrade to PRO to use Slack notifications" });
+      return;
+    }
+
     const [updated] = (await db.update(workspacesTable).set({
       name: name || workspace.name,
       slackWebhookUrl: slackWebhookUrl !== undefined ? slackWebhookUrl : workspace.slackWebhookUrl,
@@ -56,6 +62,11 @@ router.patch("/settings", requireAuth, async (req, res) => {
 router.post("/test-slack", requireAuth, async (req, res) => {
   try {
     const { slackWebhookUrl } = req.body;
+    const workspace = (req as any).workspace;
+    if (!isAtLeastPlan(workspace.plan, "PRO")) {
+      res.status(403).json({ error: "Upgrade to PRO to use Slack notifications" });
+      return;
+    }
     if (!slackWebhookUrl) {
       res.status(400).json({ error: "slackWebhookUrl is required" });
       return;

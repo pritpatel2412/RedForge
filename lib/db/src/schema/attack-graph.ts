@@ -1,5 +1,5 @@
 import { pgTable, text, timestamp, varchar, uuid, real } from "drizzle-orm/pg-core";
-import { scansTable } from "./projects.js";
+import { scansTable } from "./projects";
 
 export const attackGraphsTable = pgTable("attack_graphs", {
   id: uuid("id").primaryKey().defaultRandom(),

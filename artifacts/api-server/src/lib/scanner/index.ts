@@ -3,6 +3,7 @@ import { eq, and } from "drizzle-orm";
 import { sendScanComplete, sendCriticalFinding } from "../notifications/slack.js";
 import { createNotification } from "../notifications/create.js";
 import type { ScanMode, FindingInput, ScanContext } from "./modules/types.js";
+import { isAtLeastPlan } from "../plan.js";
 
 // ── Module imports ────────────────────────────────────────────────────────────
 import { runHeadersModule }        from "./modules/headers.js";
@@ -17,6 +18,7 @@ import { runDNSSecurityModule }    from "./modules/dnsSecurity.js";
 import { runAPISecurityModule }    from "./modules/apiSecurity.js";
 import { runWordPressModule }      from "./modules/wordpressScanner.js";
 import { runGitHubSASTModule }      from "./modules/github.js";
+import { runAutonomousPentestAgent } from "./modules/autonomousAgent.js";
 import { correlateFindings, computeRiskScore } from "./modules/correlationEngine.js";
 import { enrichWithRemediation }  from "./modules/remediationEngine.js";
 import { enrichWithCompliance }   from "./modules/complianceMapping.js";
@@ -154,6 +156,11 @@ export async function runRealScan(
   const currentProject = await db.select().from(projectsTable).where(eq(projectsTable.id, currentScan.projectId)).limit(1).then(r => r[0]) as any;
   if (!currentProject) return;
 
+  const [workspace] = await db.select().from(workspacesTable)
+    .where(eq(workspacesTable.id as any, currentProject.workspaceId))
+    .limit(1) as any;
+  const workspacePlan = (workspace?.plan || "FREE") as any;
+
   const activeScan = await db.select().from(scansTable)
     .where(and(eq(scansTable.projectId, currentScan.projectId), eq(scansTable.status, "RUNNING")))
     .limit(1)
@@ -239,6 +246,7 @@ export async function runRealScan(
       scanId,
       projectId: currentScan.projectId,
       projectData: currentProject,
+      workspacePlan,
       targetUrl,
       hostname,
       scanMode,
@@ -323,6 +331,13 @@ export async function runRealScan(
     await addLog(scanId, "INFO", `✓ Parallel modules complete — ${findings.length} raw findings`);
 
     // ── Phase 3: Active-Only Modules ────────────────────────────────────────
+    const canActive = isAtLeastPlan(workspacePlan, "PRO");
+    if (scanMode === "ACTIVE" && !canActive) {
+      await addLog(scanId, "WARN", "ACTIVE mode requires PRO plan — running PASSIVE modules only.");
+      scanMode = "PASSIVE";
+      (ctx as any).scanMode = "PASSIVE";
+    }
+
     if (scanMode === "ACTIVE") {
       await addLog(scanId, "INFO", "Phase 3 — ACTIVE mode: SQL injection, rate limiting, business logic...");
 
@@ -411,6 +426,17 @@ export async function runRealScan(
       await addLog(scanId, "INFO", "Phase 3 — Skipped (PASSIVE mode). Switch to ACTIVE for SQLi, rate limit, business logic probing.");
     }
 
+    // ── Phase 3.5: Autonomous Pentesting Agent (adaptive loop) ─────────────
+    const agentEnabled = process.env.ENABLE_AGENTIC_SCANNER !== "false" && isAtLeastPlan(workspacePlan, "PRO");
+    if (agentEnabled) {
+      const agentFindings = await runModuleSafe("Autonomous Agent", scanId, () =>
+        runAutonomousPentestAgent(ctx, findings),
+      );
+      findings.push(...agentFindings);
+    } else {
+      await addLog(scanId, "INFO", "Phase AGENT — disabled (requires PRO or ENABLE_AGENTIC_SCANNER=false)");
+    }
+
     // ── Phase 4: AI Deep Analysis (NVIDIA NIM) ──────────────────────────────
     const nimKey = process.env.NVIDIA_NIM_API_KEY;
     // nvidia/llama-3.1-nemotron-70b-instruct: NVIDIA's RLHF fine-tune of Llama 3.1 70B
@@ -418,7 +444,7 @@ export async function runRealScan(
     const primaryModel = process.env.NVIDIA_MODEL || "nvidia/llama-3.1-nemotron-70b-instruct";
     const fallbackModel = "meta/llama-3.1-70b-instruct";
 
-    if (nimKey) {
+    if (nimKey && isAtLeastPlan(workspacePlan, "PRO")) {
       const runAI = async (model: string) => {
         await addLog(scanId, "INFO", `Phase 4 — AI deep analysis (NVIDIA NIM · ${model})...`);
         const headersSummary = reachable

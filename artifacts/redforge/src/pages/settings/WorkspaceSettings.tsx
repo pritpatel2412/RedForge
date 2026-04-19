@@ -8,6 +8,8 @@ import SettingsLayout from "./SettingsLayout";
 export default function WorkspaceSettings() {
   const { data: settings, isLoading } = useGetWorkspaceSettings();
   const queryClient = useQueryClient();
+  const plan = settings?.plan || "FREE";
+  const isPro = plan === "PRO" || plan === "ENTERPRISE";
   
   const [name, setName] = useState("");
   const [slackUrl, setSlackUrl] = useState("");
@@ -108,19 +110,28 @@ export default function WorkspaceSettings() {
                 value={slackUrl}
                 onChange={e => setSlackUrl(e.target.value)}
                 placeholder="https://hooks.slack.com/services/..."
-                className="flex-1 bg-background border border-border rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary transition-all"
+                disabled={!isPro}
+                className={`flex-1 border border-border rounded-xl px-4 py-3 focus:outline-none transition-all ${
+                  isPro
+                    ? "bg-background text-white focus:border-primary"
+                    : "bg-muted text-muted-foreground opacity-70 cursor-not-allowed"
+                }`}
               />
               <button
                 type="button"
                 onClick={handleTestSlack}
-                disabled={isTesting || !slackUrl}
+                disabled={!isPro || isTesting || !slackUrl}
                 className="px-4 py-3 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-xl font-medium transition-all flex items-center gap-2 border border-border disabled:opacity-50"
               >
                 {isTesting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                 Test
               </button>
             </div>
-            <p className="text-xs text-muted-foreground mt-2">Get notified instantly when new critical vulnerabilities are found.</p>
+            <p className="text-xs text-muted-foreground mt-2">
+              {isPro
+                ? "Get notified instantly when new critical vulnerabilities are found."
+                : "Slack notifications are available on the Pro plan."}
+            </p>
           </div>
         </div>
 

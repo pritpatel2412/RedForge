@@ -3,6 +3,7 @@ import { db, projectsTable, scansTable, findingsTable } from "@workspace/db";
 import { eq, desc, and, sql } from "drizzle-orm";
 import { requireAuth } from "../lib/auth.js";
 import { runRealScan } from "../lib/scanner/index.js";
+import { isAtLeastPlan } from "../lib/plan.js";
 
 const router = Router();
 
@@ -49,6 +50,17 @@ router.post("/", requireAuth, async (req, res) => {
     if (!name || !targetUrl || !targetType) {
       res.status(400).json({ error: "name, targetUrl, and targetType are required" });
       return;
+    }
+
+    // FREE plan: limit number of projects (scan targets)
+    if (!isAtLeastPlan(workspace.plan, "PRO")) {
+      const [{ count }] = await db.select({ count: sql<number>`count(*)` })
+        .from(projectsTable)
+        .where(eq(projectsTable.workspaceId as any, workspace.id as any));
+      if (Number(count || 0) >= 3) {
+        res.status(403).json({ error: "FREE plan limit reached: max 3 scan targets. Upgrade to PRO." });
+        return;
+      }
     }
 
     // Normalise URL: strip duplicate protocol (e.g. https://https://...) and trailing slash
@@ -214,6 +226,32 @@ router.post("/:id/scan", requireAuth, async (req, res) => {
 
     if (!project) {
       res.status(404).json({ error: "Project not found" });
+      return;
+    }
+
+    // FREE plan scan limit: 50 scans per calendar month
+    if (!isAtLeastPlan(workspace.plan, "PRO")) {
+      const startOfMonth = new Date();
+      startOfMonth.setDate(1);
+      startOfMonth.setHours(0, 0, 0, 0);
+
+      const [{ count }] = await db.select({ count: sql<number>`count(*)` })
+        .from(scansTable)
+        .innerJoin(projectsTable, eq(scansTable.projectId, projectsTable.id))
+        .where(and(
+          eq(projectsTable.workspaceId as any, workspace.id as any),
+          sql`${scansTable.createdAt} >= ${startOfMonth}`
+        ));
+
+      if (Number(count || 0) >= 50) {
+        res.status(403).json({ error: "FREE plan limit reached: 50 scans/month. Upgrade to PRO." });
+        return;
+      }
+    }
+
+    // ACTIVE scanning requires PRO+
+    if (resolvedMode === "ACTIVE" && !isAtLeastPlan(workspace.plan, "PRO")) {
+      res.status(403).json({ error: "ACTIVE scan mode requires PRO plan" });
       return;
     }
 

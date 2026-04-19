@@ -10,24 +10,23 @@ const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 const PRO_FEATURES = [
   "Unlimited scan targets",
-  "Unlimited scans per month",
-  "Advanced AI vulnerability engine",
-  "AI fix generation + production patches",
-  "Slack & email notifications",
-  "CI/CD API access",
-  "Full OWASP + SANS coverage",
+  "Unlimited scans",
+  "ACTIVE mode probing (SQLi/rate-limit/business logic)",
+  "Autonomous pentest agent (adaptive follow-up probes)",
+  "AI deep analysis (NVIDIA NIM)",
+  "AI fix generation (PR-ready diffs + PoC)",
+  "GitHub SAST integration (repo checks)",
+  "Slack notifications",
+  "CI/CD security gate API",
   "90-day finding history",
 ];
 
 const ENTERPRISE_FEATURES = [
   "Everything in Pro",
-  "On-premise deployment option",
-  "SOC2 / HIPAA compliance reports",
-  "SSO / SAML authentication",
-  "Custom scan policies",
   "Unlimited history retention",
-  "Dedicated Slack channel",
-  "24/7 SLA support",
+  "Custom integrations & policies",
+  "Dedicated onboarding + SLA",
+  "Custom reporting package",
 ];
 
 const cardVariants = {

@@ -3,6 +3,33 @@
 @import "tw-animate-css";
 @plugin "@tailwindcss/typography";
 
+@font-face {
+  font-family: 'Compressa VF';
+  src: url('https://res.cloudinary.com/dr6lvwubh/raw/upload/v1529908256/CompressaPRO-GX.woff2');
+  font-style: normal;
+  font-display: swap;
+}
+
+.pressure-test-title span {
+  display: inline-block;
+  transform-origin: center center;
+}
+
+.stroke span {
+  position: relative;
+  color: currentColor;
+}
+
+.stroke span::after {
+  content: attr(data-char);
+  position: absolute;
+  inset: 0;
+  color: transparent;
+  z-index: -1;
+  -webkit-text-stroke-width: 2px;
+  -webkit-text-stroke-color: currentColor;
+}
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {

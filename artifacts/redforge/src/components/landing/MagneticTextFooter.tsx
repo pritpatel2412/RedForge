@@ -122,17 +122,18 @@ function MagneticChar({ char, mouseX, mouseY }: MagneticCharProps) {
   return (
     <motion.div
       ref={charRef}
+      data-char={char}
       style={{
         fontVariationSettings: useTransform(smoothWeight, (v) => `'wght' ${Math.round(v)}`),
         scale,
         color,
         y: yOffset,
-        fontFamily: "'Inter', sans-serif",
+        fontFamily: "'Compressa VF', sans-serif",
         willChange: "font-variation-settings, transform"
       }}
-      className="text-[18vw] leading-none tracking-[-0.06em] pointer-events-none"
+      className="text-[18vw] leading-none tracking-[-0.04em] pointer-events-none pressure-test-title stroke"
     >
-      {char}
+      <motion.span data-char={char}>{char}</motion.span>
     </motion.div>
   );
 }

@@ -35,14 +35,14 @@ router.get("/:id", requireAuth, async (req, res) => {
     const workspace = (req as any).workspace;
     const id = req.params.id;
 
-    const [scan] = await db.select().from(scansTable).where(eq(scansTable.id, id)).limit(1);
+    const [scan] = await db.select().from(scansTable).where(eq(scansTable.id, id as any)).limit(1);
     if (!scan) {
       res.status(404).json({ error: "Scan not found" });
       return;
     }
 
     const [project] = await db.select().from(projectsTable)
-      .where(and(eq(projectsTable.id, scan.projectId), eq(projectsTable.workspaceId, workspace.id)))
+      .where(and(eq(projectsTable.id, scan.projectId as any), eq(projectsTable.workspaceId, workspace.id as any)))
       .limit(1);
 
     if (!project) {
@@ -51,7 +51,7 @@ router.get("/:id", requireAuth, async (req, res) => {
     }
 
     const currentFindings = await db.select().from(findingsTable)
-      .where(eq(findingsTable.scanId, id))
+      .where(eq(findingsTable.scanId, id as any))
       .orderBy(desc(findingsTable.createdAt));
 
     // Get previous successful scan to compute diff

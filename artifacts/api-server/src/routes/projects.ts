@@ -26,7 +26,7 @@ router.get("/", requireAuth, async (req, res) => {
       lastScanAt: sql<string>`(SELECT max(${scansTable.createdAt}) FROM ${scansTable} WHERE ${scansTable.projectId} = ${projectsTable.id})`,
     })
     .from(projectsTable)
-    .where(eq(projectsTable.workspaceId, workspace.id))
+    .where(eq(projectsTable.workspaceId, workspace.id as any))
     .orderBy(desc(projectsTable.createdAt));
 
     res.json(results.map(p => ({
@@ -99,7 +99,7 @@ router.get("/:id", requireAuth, async (req, res) => {
     }
 
     const [project] = await db.select().from(projectsTable)
-      .where(and(eq(projectsTable.id, id), eq(projectsTable.workspaceId, workspace.id)))
+      .where(and(eq(projectsTable.id, id as any), eq(projectsTable.workspaceId, workspace.id as any)))
       .limit(1);
 
     if (!project) {
@@ -110,12 +110,12 @@ router.get("/:id", requireAuth, async (req, res) => {
     // Limit scans and findings to the most recent ones for the detail view
     // This prevents 500 errors on projects with massive histories
     const scans = await db.select().from(scansTable)
-      .where(eq(scansTable.projectId, id))
+      .where(eq(scansTable.projectId, id as any))
       .orderBy(desc(scansTable.createdAt))
       .limit(50);
 
     const findings = await db.select().from(findingsTable)
-      .where(eq(findingsTable.projectId, id))
+      .where(eq(findingsTable.projectId, id as any))
       .orderBy(desc(findingsTable.createdAt))
       .limit(100);
 
@@ -145,7 +145,7 @@ router.put("/:id", requireAuth, async (req, res) => {
     const { name, description, targetUrl, status, slackWebhookUrl, githubRepo, githubBranch, githubToken } = req.body;
 
     const [project] = await db.select().from(projectsTable)
-      .where(and(eq(projectsTable.id, id), eq(projectsTable.workspaceId, workspace.id)))
+      .where(and(eq(projectsTable.id, id as any), eq(projectsTable.workspaceId, workspace.id as any)))
       .limit(1);
 
     if (!project) {
@@ -167,7 +167,7 @@ router.put("/:id", requireAuth, async (req, res) => {
         githubToken: githubToken !== undefined ? githubToken : project.githubToken,
         updatedAt: new Date(),
       })
-      .where(eq(projectsTable.id, id))
+      .where(eq(projectsTable.id, id as any))
       .returning();
 
     res.json(updated);
@@ -183,7 +183,7 @@ router.delete("/:id", requireAuth, async (req, res) => {
     const id = req.params.id;
 
     const [project] = await db.select().from(projectsTable)
-      .where(and(eq(projectsTable.id, id), eq(projectsTable.workspaceId, workspace.id)))
+      .where(and(eq(projectsTable.id, id as any), eq(projectsTable.workspaceId, workspace.id as any)))
       .limit(1);
 
     if (!project) {
@@ -191,7 +191,7 @@ router.delete("/:id", requireAuth, async (req, res) => {
       return;
     }
 
-    await db.delete(projectsTable).where(eq(projectsTable.id, id));
+    await db.delete(projectsTable).where(eq(projectsTable.id, id as any));
     res.json({ message: "Project deleted" });
   } catch (err) {
     req.log.error(err, "Error deleting project");
@@ -209,7 +209,7 @@ router.post("/:id/scan", requireAuth, async (req, res) => {
     const resolvedMode = validModes.includes(scanMode) ? scanMode : "PASSIVE";
 
     const [project] = await db.select().from(projectsTable)
-      .where(and(eq(projectsTable.id, id), eq(projectsTable.workspaceId, workspace.id)))
+      .where(and(eq(projectsTable.id, id as any), eq(projectsTable.workspaceId, workspace.id as any)))
       .limit(1);
 
     if (!project) {

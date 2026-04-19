@@ -131,7 +131,7 @@ function MagneticChar({ char, mouseX, mouseY }: MagneticCharProps) {
         fontFamily: "'Compressa VF', sans-serif",
         willChange: "font-variation-settings, transform"
       }}
-      className="text-[18vw] leading-none tracking-[-0.04em] pointer-events-none pressure-test-title stroke"
+      className="text-[18vw] leading-none tracking-[0.05em] pointer-events-none pressure-test-title stroke"
     >
       <motion.span data-char={char}>{char}</motion.span>
     </motion.div>

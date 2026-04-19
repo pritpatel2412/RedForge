@@ -10,26 +10,24 @@ router.get("/", requireAuth, async (req, res) => {
     const workspace = (req as any).workspace;
     const { severity, status, projectId } = req.query;
 
-    const projects = await db.select().from(projectsTable)
-      .where(eq(projectsTable.workspaceId as any, workspace.id));
-    const projectIds = projects.map(p => p.id);
-    const projectMap = Object.fromEntries(projects.map(p => [p.id, p.name]));
+    const query = db.select({
+      finding: findingsTable,
+      projectName: projectsTable.name,
+    })
+    .from(findingsTable)
+    .innerJoin(projectsTable, eq(findingsTable.projectId, projectsTable.id))
+    .where(eq(projectsTable.workspaceId, workspace.id));
 
-    if (projectIds.length === 0) {
-      res.json([]);
-      return;
-    }
+    if (projectId) query.where(and(eq(projectsTable.workspaceId, workspace.id), eq(findingsTable.projectId, projectId as string)));
+    if (severity)  query.where(and(eq(projectsTable.workspaceId, workspace.id), eq(findingsTable.severity, severity as string)));
+    if (status)    query.where(and(eq(projectsTable.workspaceId, workspace.id), eq(findingsTable.status, status as string)));
 
-    let allFindings = await db.select().from(findingsTable)
-      .orderBy(desc(findingsTable.createdAt));
+    const results = await query.orderBy(desc(findingsTable.createdAt)).limit(100);
 
-    allFindings = allFindings.filter(f => projectIds.includes(f.projectId));
-
-    if (projectId) allFindings = allFindings.filter(f => f.projectId === projectId);
-    if (severity) allFindings = allFindings.filter(f => f.severity === severity);
-    if (status) allFindings = allFindings.filter(f => f.status === status);
-
-    res.json(allFindings.map(f => ({ ...f, projectName: projectMap[f.projectId] || "Unknown" })));
+    res.json(results.map(r => ({
+      ...r.finding,
+      projectName: r.projectName,
+    })));
   } catch (err) {
     req.log.error(err, "Error listing findings");
     res.status(500).json({ error: "Internal server error" });

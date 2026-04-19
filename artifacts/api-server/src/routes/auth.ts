@@ -171,7 +171,7 @@ router.get("/heatmap", async (req, res) => {
     if (workspace) {
       // Use SQL to group findings by day for efficiency
       const history = await db.select({
-        day: sql<string>`DATE(created_at)::text`,
+        day: sql<string>`DATE(${findingsTable.createdAt})::text`,
         count: sql<number>`count(*)`
       })
       .from(findingsTable)
@@ -180,7 +180,7 @@ router.get("/heatmap", async (req, res) => {
         eq(projectsTable.workspaceId, workspace.id),
         gt(findingsTable.createdAt, yearAgo)
       ))
-      .groupBy(sql`DATE(created_at)`);
+      .groupBy(sql`DATE(${findingsTable.createdAt})`);
 
       for (const row of history) {
         if (row.day in dayCount) {

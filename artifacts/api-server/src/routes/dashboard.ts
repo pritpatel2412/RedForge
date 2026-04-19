@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, projectsTable, scansTable, findingsTable } from "@workspace/db";
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, and, sql } from "drizzle-orm";
 import { requireAuth } from "../lib/auth.js";
 
 const router = Router();
@@ -9,13 +9,15 @@ router.get("/stats", requireAuth, async (req, res) => {
   try {
     const workspace = (req as any).workspace;
 
-    const projects = await db.select().from(projectsTable)
-      .where(eq(projectsTable.workspaceId as any, workspace.id));
+    // 1. Get projects count and map
+    const projects = await db.select({
+      id: projectsTable.id,
+      name: projectsTable.name,
+    })
+    .from(projectsTable)
+    .where(eq(projectsTable.workspaceId, workspace.id));
 
-    const projectIds = projects.map(p => p.id);
-    const projectMap = Object.fromEntries(projects.map(p => [p.id, p.name]));
-
-    if (projectIds.length === 0) {
+    if (projects.length === 0) {
       res.json({
         totalProjects: 0,
         totalScans: 0,
@@ -32,45 +34,65 @@ router.get("/stats", requireAuth, async (req, res) => {
       return;
     }
 
-    const allScans = await db.select().from(scansTable).orderBy(desc(scansTable.createdAt));
-    const workspaceScans = allScans.filter(s => projectIds.includes(s.projectId));
+    const projectMap = Object.fromEntries(projects.map(p => [p.id, p.name]));
 
-    const allFindings = await db.select().from(findingsTable).orderBy(desc(findingsTable.createdAt));
-    const workspaceFindings = allFindings.filter(f => projectIds.includes(f.projectId));
-
+    // 2. Aggregate stats in one go if possible, or separate optimized queries
     const now = new Date();
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    const scansThisMonth = workspaceScans.filter(s => new Date(s.createdAt) >= monthStart).length;
 
-    const openFindings = workspaceFindings.filter(f => f.status === "OPEN" || f.status === "IN_PROGRESS");
-    const criticalFindings = openFindings.filter(f => f.severity === "CRITICAL").length;
-    const highFindings = openFindings.filter(f => f.severity === "HIGH").length;
-    const mediumFindings = openFindings.filter(f => f.severity === "MEDIUM").length;
-    const lowFindings = openFindings.filter(f => f.severity === "LOW").length;
-    const fixedFindings = workspaceFindings.filter(f => f.status === "FIXED").length;
+    const [scansStats] = await db.select({
+      total: sql<number>`count(*)`,
+      thisMonth: sql<number>`count(*) FILTER (WHERE ${scansTable.createdAt} >= ${monthStart})`
+    })
+    .from(scansTable)
+    .innerJoin(projectsTable, eq(scansTable.projectId, projectsTable.id))
+    .where(eq(projectsTable.workspaceId, workspace.id));
 
-    const recentFindings = workspaceFindings.slice(0, 10).map(f => ({
-      ...f,
-      projectName: projectMap[f.projectId] || "Unknown",
-    }));
+    const [findingsStats] = await db.select({
+      totalOpen: sql<number>`count(*) FILTER (WHERE ${findingsTable.status} IN ('OPEN', 'IN_PROGRESS'))`,
+      critical: sql<number>`count(*) FILTER (WHERE ${findingsTable.status} IN ('OPEN', 'IN_PROGRESS') AND ${findingsTable.severity} = 'CRITICAL')`,
+      high: sql<number>`count(*) FILTER (WHERE ${findingsTable.status} IN ('OPEN', 'IN_PROGRESS') AND ${findingsTable.severity} = 'HIGH')`,
+      medium: sql<number>`count(*) FILTER (WHERE ${findingsTable.status} IN ('OPEN', 'IN_PROGRESS') AND ${findingsTable.severity} = 'MEDIUM')`,
+      low: sql<number>`count(*) FILTER (WHERE ${findingsTable.status} IN ('OPEN', 'IN_PROGRESS') AND ${findingsTable.severity} = 'LOW')`,
+      fixed: sql<number>`count(*) FILTER (WHERE ${findingsTable.status} = 'FIXED')`
+    })
+    .from(findingsTable)
+    .innerJoin(projectsTable, eq(findingsTable.projectId, projectsTable.id))
+    .where(eq(projectsTable.workspaceId, workspace.id));
 
-    const recentScans = workspaceScans.slice(0, 10).map(s => ({
-      ...s,
-      projectName: projectMap[s.projectId] || "Unknown",
-    }));
+    // 3. Get recent activities
+    const recentScans = await db.select()
+      .from(scansTable)
+      .innerJoin(projectsTable, eq(scansTable.projectId, projectsTable.id))
+      .where(eq(projectsTable.workspaceId, workspace.id))
+      .orderBy(desc(scansTable.createdAt))
+      .limit(10);
+
+    const recentFindings = await db.select()
+      .from(findingsTable)
+      .innerJoin(projectsTable, eq(findingsTable.projectId, projectsTable.id))
+      .where(eq(projectsTable.workspaceId, workspace.id))
+      .orderBy(desc(findingsTable.createdAt))
+      .limit(10);
 
     res.json({
       totalProjects: projects.length,
-      totalScans: workspaceScans.length,
-      openFindings: openFindings.length,
-      criticalFindings,
-      highFindings,
-      mediumFindings,
-      lowFindings,
-      fixedFindings,
-      scansThisMonth,
-      recentFindings,
-      recentScans,
+      totalScans: Number(scansStats?.total || 0),
+      openFindings: Number(findingsStats?.totalOpen || 0),
+      criticalFindings: Number(findingsStats?.critical || 0),
+      highFindings: Number(findingsStats?.high || 0),
+      mediumFindings: Number(findingsStats?.medium || 0),
+      lowFindings: Number(findingsStats?.low || 0),
+      fixedFindings: Number(findingsStats?.fixed || 0),
+      scansThisMonth: Number(scansStats?.thisMonth || 0),
+      recentFindings: recentFindings.map(({ findings, projects }) => ({
+        ...findings,
+        projectName: projects.name,
+      })),
+      recentScans: recentScans.map(({ scans, projects }) => ({
+        ...scans,
+        projectName: projects.name,
+      })),
     });
   } catch (err) {
     req.log.error(err, "Error getting dashboard stats");

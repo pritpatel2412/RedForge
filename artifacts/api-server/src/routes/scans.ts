@@ -10,25 +10,19 @@ router.get("/", requireAuth, async (req, res) => {
   try {
     const workspace = (req as any).workspace;
 
-    const projects = await db.select().from(projectsTable)
-      .where(eq(projectsTable.workspaceId as any, workspace.id));
-    const projectIds = projects.map(p => p.id);
-    const projectMap = Object.fromEntries(projects.map(p => [p.id, p.name]));
+    const results = await db.select({
+      scan: scansTable,
+      projectName: projectsTable.name,
+    })
+    .from(scansTable)
+    .innerJoin(projectsTable, eq(scansTable.projectId, projectsTable.id))
+    .where(eq(projectsTable.workspaceId, workspace.id))
+    .orderBy(desc(scansTable.createdAt))
+    .limit(50);
 
-    if (projectIds.length === 0) {
-      res.json([]);
-      return;
-    }
-
-    const allScans = await db.select().from(scansTable)
-      .orderBy(desc(scansTable.createdAt))
-      .limit(50);
-
-    const scans = allScans.filter(s => projectIds.includes(s.projectId));
-
-    res.json(scans.map(s => ({
-      ...s,
-      projectName: projectMap[s.projectId] || "Unknown",
+    res.json(results.map(r => ({
+      ...r.scan,
+      projectName: r.projectName,
     })));
   } catch (err) {
     req.log.error(err, "Error listing scans");

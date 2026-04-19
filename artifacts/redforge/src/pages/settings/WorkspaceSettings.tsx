@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useGetWorkspaceSettings, useUpdateWorkspaceSettings } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
-import { Loader2, Save } from "lucide-react";
+import { Loader2, Save, Send } from "lucide-react";
 import SettingsLayout from "./SettingsLayout";
 
 export default function WorkspaceSettings() {
@@ -11,6 +11,7 @@ export default function WorkspaceSettings() {
   
   const [name, setName] = useState("");
   const [slackUrl, setSlackUrl] = useState("");
+  const [isTesting, setIsTesting] = useState(false);
 
   useEffect(() => {
     if (settings) {
@@ -32,6 +33,37 @@ export default function WorkspaceSettings() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     update({ data: { name, slackWebhookUrl: slackUrl } });
+  };
+
+  const handleTestSlack = async () => {
+    if (!slackUrl) {
+      toast.error("Please enter a Slack Webhook URL first");
+      return;
+    }
+    if (!slackUrl.startsWith("https://hooks.slack.com/")) {
+      toast.error("Invalid Slack Webhook URL — must start with https://hooks.slack.com/");
+      return;
+    }
+
+    setIsTesting(true);
+    try {
+      const res = await fetch("/api/workspace/test-slack", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ slackWebhookUrl: slackUrl }),
+      });
+      
+      if (res.ok) {
+        toast.success("Test message sent! Check your Slack channel.");
+      } else {
+        const data = await res.json();
+        toast.error(data.error || "Integration test failed");
+      }
+    } catch (err) {
+      toast.error("Network error: Could not reach the integration server");
+    } finally {
+      setIsTesting(false);
+    }
   };
 
   if (isLoading) return <SettingsLayout><div className="skeleton h-64 rounded-2xl" /></SettingsLayout>;
@@ -70,13 +102,24 @@ export default function WorkspaceSettings() {
           
           <div>
             <label className="text-sm font-medium text-zinc-300 block mb-2">Slack Webhook URL</label>
-            <input 
-              type="url" 
-              value={slackUrl}
-              onChange={e => setSlackUrl(e.target.value)}
-              placeholder="https://hooks.slack.com/services/..."
-              className="w-full bg-background border border-border rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary transition-all max-w-md"
-            />
+            <div className="flex gap-2 max-w-2xl">
+              <input 
+                type="url" 
+                value={slackUrl}
+                onChange={e => setSlackUrl(e.target.value)}
+                placeholder="https://hooks.slack.com/services/..."
+                className="flex-1 bg-background border border-border rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary transition-all"
+              />
+              <button
+                type="button"
+                onClick={handleTestSlack}
+                disabled={isTesting || !slackUrl}
+                className="px-4 py-3 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-xl font-medium transition-all flex items-center gap-2 border border-border disabled:opacity-50"
+              >
+                {isTesting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                Test
+              </button>
+            </div>
             <p className="text-xs text-muted-foreground mt-2">Get notified instantly when new critical vulnerabilities are found.</p>
           </div>
         </div>

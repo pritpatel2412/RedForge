@@ -153,3 +153,37 @@ export async function sendCriticalFinding(
 
   await sendSlackMessage(webhookUrl, message);
 }
+
+export async function sendTestMessage(webhookUrl: string): Promise<void> {
+  const message: SlackMessage = {
+    text: "🚀 RedForge: Slack Integration Test",
+    blocks: [
+      {
+        type: "header",
+        text: {
+          type: "plain_text",
+          text: "🚀 RedForge: Connectivity Test",
+          emoji: true,
+        },
+      },
+      {
+        type: "section",
+        text: {
+          type: "mrkdwn",
+          text: "If you are reading this, your *RedForge Slack Integration* is successfully configured and ready to receive critical vulnerability alerts.",
+        },
+      },
+      {
+        type: "context",
+        elements: [
+          {
+            type: "mrkdwn",
+            text: `Test triggered at ${new Date().toISOString()}`,
+          },
+        ],
+      },
+    ],
+  };
+
+  await sendSlackMessage(webhookUrl, message);
+}

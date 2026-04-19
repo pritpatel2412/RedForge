@@ -2,6 +2,7 @@ import { Router } from "express";
 import { db, workspacesTable, projectsTable, scansTable, findingsTable } from "@workspace/db";
 import { eq, desc, and } from "drizzle-orm";
 import { requireAuth } from "../lib/auth.js";
+import { sendTestMessage } from "../lib/notifications/slack.js";
 
 const router = Router();
 
@@ -48,8 +49,28 @@ router.patch("/settings", requireAuth, async (req, res) => {
       createdAt: updated.createdAt,
     });
   } catch (err) {
-    req.log.error(err, "Error updating workspace settings");
     res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.post("/test-slack", requireAuth, async (req, res) => {
+  try {
+    const { slackWebhookUrl } = req.body;
+    if (!slackWebhookUrl) {
+      res.status(400).json({ error: "slackWebhookUrl is required" });
+      return;
+    }
+
+    if (!slackWebhookUrl.startsWith("https://hooks.slack.com/")) {
+      res.status(400).json({ error: "Invalid Slack Webhook URL — must start with https://hooks.slack.com/" });
+      return;
+    }
+
+    await sendTestMessage(slackWebhookUrl);
+    res.json({ message: "Test message sent" });
+  } catch (err) {
+    req.log.error(err, "Error testing Slack webhook");
+    res.status(500).json({ error: "Failed to send test message. Check your URL and try again." });
   }
 });
 

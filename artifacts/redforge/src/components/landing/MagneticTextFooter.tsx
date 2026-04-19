@@ -1,105 +1,135 @@
-import React, { useRef, useState, useEffect } from "react";
-import { motion, useSpring, useTransform, useMotionValue } from "framer-motion";
+import React, { useRef, useMemo } from "react";
+import { motion, useSpring, useTransform, useMotionValue, useScroll } from "framer-motion";
 
 const CHARS = "REDFORGE".split("");
 
 /**
- * A "Next-level" magnetic text footer.
- * Re-reads the user's intent:
- * "when user hover any text so other become thik in size that letter is too thin and it must be supersmoother effect."
- * Interpretation: Hovering a char makes it THIN (e.g. 100) while making others THICK (e.g. 900)?
- * Or maybe the neighbors get thicker.
- * Let's implement a Proximity-based Weight effect where hovered = 100, far = 400, nearby = 800.
- * This creates eye-catching "magnetic" movement.
+ * Optimized Magnetic Text Footer with "Footer Revelation" effect.
+ * This component remains hidden behind the page until the user scrolls past the main content.
  */
 export default function MagneticTextFooter() {
   const containerRef = useRef<HTMLDivElement>(null);
   
-  return (
-    <section 
-      ref={containerRef}
-      className="relative z-0 h-[60vh] flex items-center justify-center overflow-hidden"
-      style={{ background: "oklch(4% 0 0)" }}
-    >
-      <div className="absolute inset-0 pointer-events-none opacity-20 bg-dot-grid" />
-      
-      <div className="flex select-none">
-        {CHARS.map((char, i) => (
-          <MagneticChar key={i} char={char} containerRef={containerRef} />
-        ))}
-      </div>
+  // Mouse tracking using MotionValues (Zero re-renders)
+  const mouseX = useMotionValue(-1000);
+  const mouseY = useMotionValue(-1000);
 
-      <div className="absolute bottom-12 flex flex-col items-center gap-2">
-        <div className="w-px h-12 bg-gradient-to-b from-transparent to-primary/40" />
-        <p className="text-[10px] font-mono uppercase tracking-[0.4em] text-zinc-600">
-          The future of security is autonomous
-        </p>
+  const handleMouseMove = (e: React.MouseEvent) => {
+    mouseX.set(e.clientX);
+    mouseY.set(e.clientY);
+  };
+
+  const handleMouseLeave = () => {
+    mouseX.set(-1000);
+    mouseY.set(-1000);
+  };
+
+  // Scroll disclosure logic
+  const { scrollYProgress } = useScroll({
+    target: containerRef,
+    offset: ["start end", "end end"]
+  });
+
+  const opacity = useTransform(scrollYProgress, [0.4, 0.9], [0, 1]);
+  const y = useTransform(scrollYProgress, [0, 1], [100, 0]);
+
+  return (
+    <div 
+      ref={containerRef}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+      className="relative z-0 h-[80vh] flex flex-col items-center justify-center overflow-hidden bg-black"
+    >
+      {/* Background decoration */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(224,30,61,0.05)_0%,transparent_70%)]" />
+        <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
       </div>
-    </section>
+      
+      <motion.div 
+        style={{ opacity, y }}
+        className="flex select-none px-4 md:px-0"
+      >
+        {CHARS.map((char, i) => (
+          <MagneticChar 
+            key={i} 
+            char={char} 
+            mouseX={mouseX} 
+            mouseY={mouseY} 
+          />
+        ))}
+      </motion.div>
+
+      <motion.div 
+        style={{ opacity }}
+        className="absolute bottom-16 flex flex-col items-center gap-3"
+      >
+        <div className="w-px h-16 bg-gradient-to-b from-transparent via-primary/30 to-transparent" />
+        <p className="text-[11px] font-mono uppercase tracking-[0.5em] text-zinc-500">
+          Crafted for the future of API Security
+        </p>
+      </motion.div>
+    </div>
   );
 }
 
-function MagneticChar({ char, containerRef }: { char: string; containerRef: React.RefObject<HTMLDivElement> }) {
+interface MagneticCharProps {
+  char: string;
+  mouseX: any;
+  mouseY: any;
+}
+
+function MagneticChar({ char, mouseX, mouseY }: MagneticCharProps) {
   const charRef = useRef<HTMLDivElement>(null);
+
+  // Springs for maximum butter-smoothness
+  const springConfig = { damping: 35, stiffness: 250, mass: 0.4 };
   
-  // Motion values for interaction
-  const mouseX = useMotionValue(0);
-  const mouseY = useMotionValue(0);
+  // Calculate distance without re-renders using useTransform
+  // We use a helper motion value to compute distance
+  const distance = useMotionValue(1000);
 
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      mouseX.set(e.clientX);
-      mouseY.set(e.clientY);
-    };
-    window.addEventListener("mousemove", handleMouseMove);
-    return () => window.removeEventListener("mousemove", handleMouseMove);
-  }, [mouseX, mouseY]);
+  // We connect the motion values using a frame-sync'd transform
+  // To avoid complex JS in transforms, we'll use a local transform that tracks proximity
+  const weight = useTransform(mouseX, (latestX: number) => {
+    if (!charRef.current) return 400;
+    const rect = charRef.current.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    
+    const dx = latestX - centerX;
+    const dy = mouseY.get() - centerY;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    
+    // Proximity mapping
+    // If very close: thin (100)
+    // If middle: thick (900)
+    // If far: normal (300)
+    if (dist < 100) return 100;
+    if (dist < 400) return 300 + (1 - (dist / 400)) * 600;
+    return 300;
+  });
 
-  // Spring for "supersmoother" interpolation
-  const springConfig = { damping: 25, stiffness: 200, mass: 0.5 };
-  
-  const distance = useMotionValue(1000); // Start far away
+  const smoothWeight = useSpring(weight, springConfig);
 
-  useEffect(() => {
-    return mouseX.onChange((latestX) => {
-      if (!charRef.current) return;
-      const rect = charRef.current.getBoundingClientRect();
-      const centerX = rect.left + rect.width / 2;
-      const centerY = rect.top + rect.height / 2;
-      
-      const dx = latestX - centerX;
-      const dy = mouseY.get() - centerY;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-      distance.set(dist);
-    });
-  }, [mouseX, mouseY, distance]);
-
-  const smoothDistance = useSpring(distance, springConfig);
-
-  // Map distance to weight
-  // Closer = thinner (100-200), Middle = thickest (900), Far = normal (300-400)
-  // This creates a "wave" effect when moving through.
-  const fontWeight = useTransform(
-    smoothDistance,
-    [0, 150, 400],
-    [100, 900, 300]
+  const scale = useTransform(smoothWeight, [100, 900], [1.05, 0.95]);
+  const color = useTransform(
+    smoothWeight, 
+    [100, 300, 900], 
+    ["#ff0000", "#ffffff", "#ffffff"]
   );
-
-  // Map distance to scale/skew for "magnetic" feel
-  const scale = useTransform(smoothDistance, [0, 200, 600], [1.15, 1, 1]);
-  const skewX = useTransform(smoothDistance, [0, 300], [0, 0]); // Keep it clean for legibility
 
   return (
     <motion.div
       ref={charRef}
       style={{
-        fontWeight: fontWeight as any,
+        fontVariationSettings: useTransform(smoothWeight, (v) => `'wght' ${Math.round(v)}`),
         scale,
-        // Using variable font weight if supported, fallback to fontWeight
-        fontVariationSettings: useTransform(fontWeight, (val) => `'wght' ${Math.round(val as number)}`),
+        color,
         fontFamily: "'Inter', sans-serif",
+        willChange: "font-variation-settings, transform"
       }}
-      className="text-[12vw] leading-none text-white tracking-[-0.05em] px-0.5 md:px-1 transition-colors duration-500 hover:text-primary shrink-0"
+      className="text-[18vw] leading-none tracking-[-0.06em] transition-all duration-300 pointer-events-none"
     >
       {char}
     </motion.div>

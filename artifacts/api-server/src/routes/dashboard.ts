@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, projectsTable, scansTable, findingsTable } from "@workspace/db";
-import { eq, desc, and, sql } from "drizzle-orm";
+import { eq, desc, and, sql, inArray } from "drizzle-orm";
 import { requireAuth } from "../lib/auth.js";
 
 const router = Router();
@@ -34,9 +34,10 @@ router.get("/stats", requireAuth, async (req, res) => {
       return;
     }
 
+    const projectIds = projects.map(p => p.id);
     const projectMap = Object.fromEntries(projects.map(p => [p.id, p.name]));
 
-    // 2. Aggregate stats in one go if possible, or separate optimized queries
+    // 2. Aggregate stats with simple WHERE IN clauses (more robust than joins)
     const now = new Date();
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
@@ -45,8 +46,7 @@ router.get("/stats", requireAuth, async (req, res) => {
       thisMonth: sql<number>`count(*) FILTER (WHERE ${scansTable.createdAt} >= ${monthStart})`
     })
     .from(scansTable)
-    .innerJoin(projectsTable, eq(scansTable.projectId, projectsTable.id))
-    .where(eq(projectsTable.workspaceId, workspace.id));
+    .where(inArray(scansTable.projectId, projectIds));
 
     const [findingsStats] = await db.select({
       totalOpen: sql<number>`count(*) FILTER (WHERE ${findingsTable.status} IN ('OPEN', 'IN_PROGRESS'))`,
@@ -57,21 +57,26 @@ router.get("/stats", requireAuth, async (req, res) => {
       fixed: sql<number>`count(*) FILTER (WHERE ${findingsTable.status} = 'FIXED')`
     })
     .from(findingsTable)
-    .innerJoin(projectsTable, eq(findingsTable.projectId, projectsTable.id))
-    .where(eq(projectsTable.workspaceId, workspace.id));
+    .where(inArray(findingsTable.projectId, projectIds));
 
-    // 3. Get recent activities
-    const recentScans = await db.select()
+    // 3. Get recent activities (joins are fine for simple row fetching)
+    const recentScansData = await db.select({
+      scan: scansTable,
+      projectName: projectsTable.name
+    })
       .from(scansTable)
       .innerJoin(projectsTable, eq(scansTable.projectId, projectsTable.id))
-      .where(eq(projectsTable.workspaceId, workspace.id))
+      .where(inArray(scansTable.projectId, projectIds))
       .orderBy(desc(scansTable.createdAt))
       .limit(10);
 
-    const recentFindings = await db.select()
+    const recentFindingsData = await db.select({
+      finding: findingsTable,
+      projectName: projectsTable.name
+    })
       .from(findingsTable)
       .innerJoin(projectsTable, eq(findingsTable.projectId, projectsTable.id))
-      .where(eq(projectsTable.workspaceId, workspace.id))
+      .where(inArray(findingsTable.projectId, projectIds))
       .orderBy(desc(findingsTable.createdAt))
       .limit(10);
 
@@ -85,13 +90,13 @@ router.get("/stats", requireAuth, async (req, res) => {
       lowFindings: Number(findingsStats?.low || 0),
       fixedFindings: Number(findingsStats?.fixed || 0),
       scansThisMonth: Number(scansStats?.thisMonth || 0),
-      recentFindings: recentFindings.map(({ findings, projects }) => ({
-        ...findings,
-        projectName: projects.name,
+      recentFindings: recentFindingsData.map(r => ({
+        ...r.finding,
+        projectName: r.projectName,
       })),
-      recentScans: recentScans.map(({ scans, projects }) => ({
-        ...scans,
-        projectName: projects.name,
+      recentScans: recentScansData.map(r => ({
+        ...r.scan,
+        projectName: r.projectName,
       })),
     });
   } catch (err) {

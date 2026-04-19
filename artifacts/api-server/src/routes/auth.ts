@@ -2,7 +2,7 @@ import { Router } from "express";
 import bcrypt from "bcryptjs";
 import { randomUUID } from "crypto";
 import { db, usersTable, sessionsTable, workspacesTable, workspaceMembersTable, scansTable, findingsTable, projectsTable } from "@workspace/db";
-import { eq, and, gt, sql } from "drizzle-orm";
+import { eq, and, gt, sql, inArray } from "drizzle-orm";
 import { getUserFromRequest } from "../lib/auth.js";
 import { sendWelcomeEmail } from "../lib/email.js";
 import { logActivity } from "../lib/activity.js";
@@ -169,22 +169,28 @@ router.get("/heatmap", async (req, res) => {
     }
 
     if (workspace) {
-      // Use SQL to group findings by day for efficiency
-      const history = await db.select({
-        day: sql<string>`DATE(${findingsTable.createdAt})::text`,
-        count: sql<number>`count(*)`
-      })
-      .from(findingsTable)
-      .innerJoin(projectsTable, eq(findingsTable.projectId, projectsTable.id))
-      .where(and(
-        eq(projectsTable.workspaceId, workspace.id),
-        gt(findingsTable.createdAt, yearAgo)
-      ))
-      .groupBy(sql`DATE(${findingsTable.createdAt})`);
+      const projects = await db.select({ id: projectsTable.id })
+        .from(projectsTable)
+        .where(eq(projectsTable.workspaceId, workspace.id));
+      const projectIds = projects.map(p => p.id);
 
-      for (const row of history) {
-        if (row.day in dayCount) {
-          dayCount[row.day] = Number(row.count);
+      if (projectIds.length > 0) {
+        // Use SQL to group findings by day for efficiency
+        const history = await db.select({
+          day: sql<string>`DATE(${findingsTable.createdAt})::text`,
+          count: sql<number>`count(*)`
+        })
+        .from(findingsTable)
+        .where(and(
+          inArray(findingsTable.projectId, projectIds),
+          gt(findingsTable.createdAt, yearAgo)
+        ))
+        .groupBy(sql`DATE(${findingsTable.createdAt})`);
+
+        for (const row of history) {
+          if (row.day in dayCount) {
+            dayCount[row.day] = Number(row.count);
+          }
         }
       }
     }

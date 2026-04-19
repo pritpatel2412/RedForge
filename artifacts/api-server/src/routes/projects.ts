@@ -39,7 +39,7 @@ router.get("/", requireAuth, async (req, res) => {
 router.post("/", requireAuth, async (req, res) => {
   try {
     const workspace = (req as any).workspace;
-    const { name, description, targetUrl, targetType } = req.body;
+    const { name, description, targetUrl, targetType, slackWebhookUrl } = req.body;
 
     if (!name || !targetUrl || !targetType) {
       res.status(400).json({ error: "name, targetUrl, and targetType are required" });
@@ -68,6 +68,7 @@ router.post("/", requireAuth, async (req, res) => {
       targetUrl: normalizedUrl,
       targetType: targetType || "WEB_APP",
       status: "active",
+      slackWebhookUrl: (slackWebhookUrl && slackWebhookUrl.startsWith("https://hooks.slack.com/")) ? slackWebhookUrl : null,
     }).returning()) as any;
 
     res.status(201).json(project);
@@ -122,7 +123,7 @@ router.put("/:id", requireAuth, async (req, res) => {
   try {
     const workspace = (req as any).workspace;
     const id = req.params.id as string;
-    const { name, description, targetUrl, status } = req.body;
+    const { name, description, targetUrl, status, slackWebhookUrl } = req.body;
 
     const [project] = await db.select().from(projectsTable)
       .where(and(eq(projectsTable.id as any, id), eq(projectsTable.workspaceId as any, workspace.id)))
@@ -139,6 +140,9 @@ router.put("/:id", requireAuth, async (req, res) => {
         description: description !== undefined ? description : project.description,
         targetUrl: targetUrl || project.targetUrl,
         status: status || project.status,
+        slackWebhookUrl: (slackWebhookUrl !== undefined && (slackWebhookUrl === null || slackWebhookUrl.startsWith("https://hooks.slack.com/"))) 
+          ? slackWebhookUrl 
+          : project.slackWebhookUrl,
         updatedAt: new Date(),
       })
       .where(eq(projectsTable.id as any, id))

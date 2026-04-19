@@ -146,6 +146,24 @@ export async function runRealScan(
   let targetUrl = rawTargetUrl.trim().replace(/\/+$/, "");
   targetUrl = targetUrl.replace(/^(https?:\/\/)(https?:\/\/)/, "$1");
 
+  // Safety check: Don't run multiple scans for the same project concurrently
+  const scan = await db.select().from(scansTable).where(eq(scansTable.id, scanId)).limit(1).then(r => r[0]);
+  if (!scan) return;
+
+  const activeScan = await db.select().from(scansTable)
+    .where(eq(scansTable.projectId, scan.projectId))
+    .where(eq(scansTable.status, "RUNNING"))
+    .limit(1)
+    .then(r => r[0]);
+
+  if (activeScan && activeScan.id !== scanId) {
+    await db.update(scansTable)
+      .set({ status: "FAILED", completedAt: new Date() })
+      .where(eq(scansTable.id, scanId));
+    await addLog(scanId, "ERROR", "Scan aborted: Another scan is already running for this project.");
+    return;
+  }
+
   await sleep(300);
   await db.update(scansTable)
     .set({ status: "RUNNING", startedAt: new Date() })
@@ -630,8 +648,9 @@ If none, return [].`;
         }
       }
 
-      // Slack (existing)
-      const webhookUrl = workspace?.slackWebhookUrl;
+      // Slack resolution: Project webhook takes precedence over Workspace webhook
+      const webhookUrl = project.slackWebhookUrl || workspace?.slackWebhookUrl;
+
       if (webhookUrl) {
         const criticals = insertedFindings.filter(f => f.severity === "CRITICAL");
         for (const f of criticals) {

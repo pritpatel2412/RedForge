@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation, useParams } from "wouter";
-import { useGetProject, useTriggerScan, useDeleteProject } from "@workspace/api-client-react";
+import { useGetProject, useTriggerScan, useDeleteProject, useUpdateProject } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import { ArrowLeft, ArrowRight, Play, Globe, Calendar, Trash2, Loader2, FileText, Bug, Shield, Zap, Clock, AlertTriangle, X, CheckCircle2 } from "lucide-react";
@@ -211,10 +211,11 @@ export default function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState<"scans" | "findings">("scans");
+  const [activeTab, setActiveTab] = useState<"scans" | "findings" | "settings">("scans");
   const [showScanModal, setShowScanModal] = useState(false);
+  const [isTestingSlack, setIsTestingSlack] = useState(false);
 
-  const { data: project, isLoading } = useGetProject(id);
+  const { data: projData, isLoading } = useGetProject(id);
 
   const { mutate: scan, isPending: isScanning } = useTriggerScan({
     mutation: {
@@ -238,12 +239,22 @@ export default function ProjectDetail() {
     }
   });
 
+  const { mutate: updateProj, isPending: isUpdating } = useUpdateProject({
+    mutation: {
+      onSuccess: () => {
+        toast.success("Settings updated");
+        queryClient.invalidateQueries({ queryKey: [`/api/projects/${id}`] });
+      },
+      onError: (err: any) => toast.error(err.message || "Failed to update project")
+    }
+  });
+
   const handleScanConfirm = (mode: ScanMode) => {
     scan({ id, data: { scanMode: mode } } as any);
   };
 
-  if (isLoading) return <div className="skeleton h-96 rounded-2xl" />;
-  if (!project) return <div>Project not found</div>;
+  if (isLoading) return <div className="skeleton h-96 rounded-2xl"></div>;
+  if (!projData) return <div>Project not found</div>;
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -261,13 +272,13 @@ export default function ProjectDetail() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-card border border-border p-6 rounded-2xl">
         <div>
           <div className="flex items-center gap-3 mb-2">
-            <h1 className="text-3xl font-bold text-white">{project.name}</h1>
-            <span className="px-2.5 py-0.5 rounded bg-muted text-xs font-mono border border-border text-muted-foreground uppercase">{project.targetType}</span>
+            <h1 className="text-3xl font-bold text-white">{projData.name}</h1>
+            <span className="px-2.5 py-0.5 rounded bg-muted text-xs font-mono border border-border text-muted-foreground uppercase">{projData.targetType}</span>
           </div>
-          <p className="text-muted-foreground">{project.description || "No description provided."}</p>
+          <p className="text-muted-foreground">{projData.description || "No description provided."}</p>
           <div className="flex flex-wrap items-center gap-6 mt-4 text-sm text-muted-foreground">
-            <div className="flex items-center gap-2"><Globe className="w-4 h-4" /> {project.targetUrl}</div>
-            <div className="flex items-center gap-2"><Calendar className="w-4 h-4" /> Created {formatDate(project.createdAt)}</div>
+            <div className="flex items-center gap-2"><Globe className="w-4 h-4" /> {projData.targetUrl}</div>
+            <div className="flex items-center gap-2"><Calendar className="w-4 h-4" /> Created {formatDate(projData.createdAt)}</div>
           </div>
         </div>
 
@@ -309,15 +320,21 @@ export default function ProjectDetail() {
           >
             <Bug className="w-4 h-4" /> Findings
           </button>
+          <button
+            className={`flex-1 py-4 text-sm font-medium transition-colors border-b-2 flex items-center justify-center gap-2 ${activeTab === 'settings' ? 'border-primary text-primary bg-primary/5' : 'border-transparent text-muted-foreground hover:text-white hover:bg-muted/50'}`}
+            onClick={() => setActiveTab('settings')}
+          >
+            <Shield className="w-4 h-4" /> Settings
+          </button>
         </div>
 
         <div className="p-0">
           {activeTab === 'scans' && (
             <div className="divide-y divide-border">
-              {project.scans.length === 0 ? (
+              {projData.scans.length === 0 ? (
                 <div className="p-12 text-center text-muted-foreground">No scans have been run yet.</div>
               ) : (
-                project.scans.map(s => (
+                projData.scans.map(s => (
                   <Link key={s.id} href={`/scans/${s.id}`} className="flex items-center justify-between p-6 hover:bg-muted/50 transition-colors group">
                     <div className="flex items-center gap-4">
                       <StatusBadge status={s.status} />
@@ -338,10 +355,10 @@ export default function ProjectDetail() {
 
           {activeTab === 'findings' && (
             <div className="divide-y divide-border">
-              {project.findings.length === 0 ? (
+              {projData.findings.length === 0 ? (
                 <div className="p-12 text-center text-muted-foreground">No findings identified. System secure.</div>
               ) : (
-                project.findings.map(f => (
+                projData.findings.map(f => (
                   <Link key={f.id} href={`/findings/${f.id}`} className="flex items-center justify-between p-6 hover:bg-muted/50 transition-colors group">
                     <div className="flex-1 pr-4">
                       <div className="flex items-center gap-3 mb-2">
@@ -359,6 +376,72 @@ export default function ProjectDetail() {
                   </Link>
                 ))
               )}
+            </div>
+          )}
+
+          {activeTab === 'settings' && (
+            <div className="p-8 max-w-2xl mx-auto space-y-8">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-bold text-white uppercase tracking-wider">Project Notifications</h3>
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400 border border-border uppercase">Slack</span>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Set a dedicated Slack webhook for this project's security alerts. Use the button below to verify connectivity.
+                </p>
+                <form 
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    const url = (e.target as any).slackUrl.value;
+                    updateProj({ id, data: { slackWebhookUrl: url } } as any);
+                  }}
+                  className="space-y-4"
+                >
+                  <div className="flex gap-2">
+                    <input 
+                      name="slackUrl"
+                      type="url" 
+                      defaultValue={(projData as any).slackWebhookUrl || ""}
+                      placeholder="https://hooks.slack.com/services/..."
+                      className="flex-1 bg-background border border-border rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all text-sm"
+                    />
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        const url = (document.querySelector('input[name="slackUrl"]') as HTMLInputElement)?.value;
+                        if (!url) return toast.error("Enter a URL first");
+                        setIsTestingSlack(true);
+                        try {
+                          const res = await fetch("/api/workspace/test-slack", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ slackWebhookUrl: url }),
+                          });
+                          if (res.ok) toast.success("Test message sent!");
+                          else toast.error("Test failed");
+                        } catch {
+                          toast.error("Network error");
+                        } finally {
+                          setIsTestingSlack(false);
+                        }
+                      }}
+                      disabled={isTestingSlack}
+                      className="px-4 py-3 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-xl font-medium transition-all flex items-center gap-2 border border-border disabled:opacity-50"
+                    >
+                      {isTestingSlack ? <Loader2 className="w-4 h-4 animate-spin" /> : "Test"}
+                    </button>
+                  </div>
+                  <div className="flex justify-end pt-2">
+                    <button 
+                      type="submit"
+                      disabled={isUpdating}
+                      className="px-6 py-2.5 bg-primary hover:bg-primary/90 text-white rounded-xl font-semibold text-sm transition-all disabled:opacity-50 shadow-[0_0_15px_rgba(239,68,68,0.2)]"
+                    >
+                      {isUpdating ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save Settings"}
+                    </button>
+                  </div>
+                </form>
+              </div>
             </div>
           )}
         </div>

@@ -8,9 +8,9 @@ import { CommandPalette } from "../CommandPalette";
 import { TrialBanner } from "./TrialBanner";
 
 const pageVariants = {
-  hidden:  { opacity: 0, y: 4 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.13, ease: [0.16, 1, 0.3, 1] as [number,number,number,number] } },
-  exit:    { opacity: 0,      transition: { duration: 0.06 } },
+  hidden:  { opacity: 0, y: 6 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.2, ease: [0.16, 1, 0.3, 1] } },
+  exit:    { opacity: 0, transition: { duration: 0.1 } },
 } as const;
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
@@ -56,7 +56,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           className="flex-1 overflow-y-auto scrollbar-thin"
           style={{ background: "oklch(5.5% 0 0)" }}
         >
-          <div className="max-w-6xl mx-auto p-5 md:p-7 lg:p-8">
+          <div className="max-w-6xl mx-auto p-4 md:p-5 lg:p-6">
             <AnimatePresence mode="popLayout" initial={false}>
               <motion.div
                 key={location}

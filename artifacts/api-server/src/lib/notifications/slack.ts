@@ -88,9 +88,11 @@ export async function sendCriticalFinding(
     id: string;
     title: string;
     endpoint: string;
+    description?: string | null;
     cvss?: string | null;
     cwe?: string | null;
     owasp?: string | null;
+    cves?: string[] | null;
   },
   projectName: string,
   appUrl: string,
@@ -111,7 +113,7 @@ export async function sendCriticalFinding(
         type: "section",
         text: {
           type: "mrkdwn",
-          text: `*${finding.title}*\n*Project:* ${projectName}\n*Endpoint:* \`${finding.endpoint}\``,
+          text: `*${finding.title}*\n*Project:* ${projectName}\n*Endpoint:* \`${finding.endpoint}\`${finding.description ? `\n\n> ${finding.description}` : ""}`,
         },
       },
       {
@@ -119,10 +121,17 @@ export async function sendCriticalFinding(
         fields: [
           { type: "mrkdwn", text: `*Severity*\n🔴 CRITICAL` },
           { type: "mrkdwn", text: `*CVSS Score*\n${finding.cvss || "N/A"}` },
-          { type: "mrkdwn", text: `*OWASP*\n${finding.owasp || "N/A"}` },
+          { type: "mrkdwn", text: `*OWASP Top 10*\n${finding.owasp || "N/A"}` },
           { type: "mrkdwn", text: `*CWE*\n${finding.cwe || "N/A"}` },
         ],
       },
+      ...(finding.cves && finding.cves.length > 0 ? [{
+        type: "section",
+        text: {
+          type: "mrkdwn",
+          text: `*Associated CVEs:* ${finding.cves.map(c => `\`${c}\``).join(", ")}`
+        }
+      }] : []),
       {
         type: "actions",
         elements: [

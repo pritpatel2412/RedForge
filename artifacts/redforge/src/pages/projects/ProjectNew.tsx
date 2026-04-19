@@ -13,6 +13,7 @@ export default function ProjectNew() {
   const [description, setDescription] = useState("");
   const [targetUrl, setTargetUrl] = useState("");
   const [targetType, setTargetType] = useState<"WEB_APP" | "API" | "MOBILE_API" | "GRAPHQL">("WEB_APP");
+  const [slackUrl, setSlackUrl] = useState("");
 
   const { mutate: create, isPending } = useCreateProject({
     mutation: {
@@ -29,7 +30,7 @@ export default function ProjectNew() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    create({ data: { name, description, targetUrl, targetType } });
+    create({ data: { name, description, targetUrl, targetType, slackWebhookUrl: slackUrl } as any });
   };
 
   const types = [
@@ -111,6 +112,21 @@ export default function ProjectNew() {
               required
             />
           </div>
+        </div>
+
+        <div className="space-y-4 pt-6 border-t border-border">
+          <div className="flex items-center justify-between">
+            <label className="text-sm font-medium text-zinc-300 block">Project Notifications (Slack)</label>
+            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400 border border-border uppercase">Advanced</span>
+          </div>
+          <p className="text-xs text-muted-foreground">Optional: Provide a dedicated webhook for this project. If empty, workspace defaults will be used.</p>
+          <input 
+            type="url" 
+            value={slackUrl}
+            onChange={e => setSlackUrl(e.target.value)}
+            placeholder="https://hooks.slack.com/services/..."
+            className="w-full bg-background border border-border rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
+          />
         </div>
 
         <div className="pt-6 border-t border-border flex justify-end gap-4">

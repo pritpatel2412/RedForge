@@ -11,6 +11,7 @@ export const projectsTable = pgTable("projects", {
   targetUrl: text("target_url").notNull(),
   targetType: varchar("target_type", { length: 50 }).notNull().default("WEB_APP"),
   status: varchar("status", { length: 50 }).notNull().default("active"),
+  slackWebhookUrl: text("slack_webhook_url"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

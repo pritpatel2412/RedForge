@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, projectsTable, scansTable, findingsTable } from "@workspace/db";
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, and, sql } from "drizzle-orm";
 import { requireAuth } from "../lib/auth.js";
 import { runRealScan } from "../lib/scanner/index.js";
 
@@ -10,26 +10,31 @@ router.get("/", requireAuth, async (req, res) => {
   try {
     const workspace = (req as any).workspace;
 
-    const projects = await db.select().from(projectsTable)
-      .where(eq(projectsTable.workspaceId as any, workspace.id))
-      .orderBy(desc(projectsTable.createdAt));
+    // Use subqueries to get aggregated stats for all projects in one efficient query
+    const results = await db.select({
+      id: projectsTable.id,
+      name: projectsTable.name,
+      description: projectsTable.description,
+      targetUrl: projectsTable.targetUrl,
+      targetType: projectsTable.targetType,
+      status: projectsTable.status,
+      createdAt: projectsTable.createdAt,
+      updatedAt: projectsTable.updatedAt,
+      scanCount: sql<number>`(SELECT count(*) FROM ${scansTable} WHERE ${scansTable.projectId} = ${projectsTable.id})`,
+      findingCount: sql<number>`(SELECT count(*) FROM ${findingsTable} WHERE ${findingsTable.projectId} = ${projectsTable.id})`,
+      criticalCount: sql<number>`(SELECT count(*) FROM ${findingsTable} WHERE ${findingsTable.projectId} = ${projectsTable.id} AND ${findingsTable.severity} = 'CRITICAL')`,
+      lastScanAt: sql<string>`(SELECT max(${scansTable.createdAt}) FROM ${scansTable} WHERE ${scansTable.projectId} = ${projectsTable.id})`,
+    })
+    .from(projectsTable)
+    .where(eq(projectsTable.workspaceId, workspace.id))
+    .orderBy(desc(projectsTable.createdAt));
 
-    const projectsWithStats = await Promise.all(projects.map(async (project) => {
-      const scans = await db.select().from(scansTable).where(eq(scansTable.projectId as any, project.id));
-      const findings = await db.select().from(findingsTable).where(eq(findingsTable.projectId as any, project.id));
-      const criticalCount = findings.filter(f => f.severity === "CRITICAL").length;
-      const lastScan = scans.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
-
-      return {
-        ...project,
-        scanCount: scans.length,
-        findingCount: findings.length,
-        criticalCount,
-        lastScanAt: lastScan?.createdAt || null,
-      };
-    }));
-
-    res.json(projectsWithStats);
+    res.json(results.map(p => ({
+      ...p,
+      scanCount: Number(p.scanCount || 0),
+      findingCount: Number(p.findingCount || 0),
+      criticalCount: Number(p.criticalCount || 0),
+    })));
   } catch (err) {
     req.log.error(err, "Error listing projects");
     res.status(500).json({ error: "Internal server error" });

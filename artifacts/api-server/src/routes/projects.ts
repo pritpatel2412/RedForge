@@ -218,7 +218,7 @@ router.post("/:id/scan", requireAuth, async (req, res) => {
     }
 
     const [scan] = await db.insert(scansTable).values({
-      projectId: id,
+      projectId: id as string,
       status: "PENDING",
       scanMode: resolvedMode,
     }).returning();

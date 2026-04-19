@@ -54,7 +54,9 @@ router.post("/", requireAuth, async (req, res) => {
     // Normalise URL: strip duplicate protocol (e.g. https://https://...) and trailing slash
     let normalizedUrl = targetUrl.trim();
     normalizedUrl = normalizedUrl.replace(/^(https?:\/\/)+/, (m: string) => {
-      return m.startsWith("https://https://") ? "https://" : m.startsWith("http://http://") ? "http://" : m;
+      if (m.startsWith("https://https://")) return "https://";
+      if (m.startsWith("http://http://")) return "http://";
+      return m;
     });
     normalizedUrl = normalizedUrl.replace(/\/+$/, "");
 
@@ -66,7 +68,7 @@ router.post("/", requireAuth, async (req, res) => {
       return;
     }
 
-    const [project] = (await db.insert(projectsTable).values({
+    const [project] = await db.insert(projectsTable).values({
       workspaceId: workspace.id,
       name,
       description: description || null,
@@ -77,7 +79,7 @@ router.post("/", requireAuth, async (req, res) => {
       githubRepo: githubRepo || null,
       githubBranch: githubBranch || "main",
       githubToken: githubToken || null,
-    }).returning()) as any;
+    }).returning();
 
     res.status(201).json(project);
   } catch (err) {
@@ -89,24 +91,33 @@ router.post("/", requireAuth, async (req, res) => {
 router.get("/:id", requireAuth, async (req, res) => {
   try {
     const workspace = (req as any).workspace;
-    const id = req.params.id as string;
+    const id = req.params.id;
 
-    const project = (await db.select().from(projectsTable)
-      .where(and(eq(projectsTable.id as any, id), eq(projectsTable.workspaceId as any, workspace.id)))
-      .limit(1).then(r => r[0])) as any;
+    if (!id) {
+      res.status(400).json({ error: "Missing project ID" });
+      return;
+    }
+
+    const [project] = await db.select().from(projectsTable)
+      .where(and(eq(projectsTable.id, id), eq(projectsTable.workspaceId, workspace.id)))
+      .limit(1);
 
     if (!project) {
       res.status(404).json({ error: "Project not found" });
       return;
     }
 
+    // Limit scans and findings to the most recent ones for the detail view
+    // This prevents 500 errors on projects with massive histories
     const scans = await db.select().from(scansTable)
-      .where(eq(scansTable.projectId as any, id))
-      .orderBy(desc(scansTable.createdAt));
+      .where(eq(scansTable.projectId, id))
+      .orderBy(desc(scansTable.createdAt))
+      .limit(50);
 
     const findings = await db.select().from(findingsTable)
-      .where(eq(findingsTable.projectId as any, id))
-      .orderBy(desc(findingsTable.createdAt));
+      .where(eq(findingsTable.projectId, id))
+      .orderBy(desc(findingsTable.createdAt))
+      .limit(100);
 
     res.json({
       ...project,
@@ -130,19 +141,19 @@ router.get("/:id", requireAuth, async (req, res) => {
 router.put("/:id", requireAuth, async (req, res) => {
   try {
     const workspace = (req as any).workspace;
-    const id = req.params.id as string;
+    const id = req.params.id;
     const { name, description, targetUrl, status, slackWebhookUrl, githubRepo, githubBranch, githubToken } = req.body;
 
-    const project = (await db.select().from(projectsTable)
-      .where(and(eq(projectsTable.id as any, id), eq(projectsTable.workspaceId as any, workspace.id)))
-      .limit(1).then(r => r[0])) as any;
+    const [project] = await db.select().from(projectsTable)
+      .where(and(eq(projectsTable.id, id), eq(projectsTable.workspaceId, workspace.id)))
+      .limit(1);
 
     if (!project) {
       res.status(404).json({ error: "Project not found" });
       return;
     }
 
-    const [updated] = (await db.update(projectsTable)
+    const [updated] = await db.update(projectsTable)
       .set({
         name: name || project.name,
         description: description !== undefined ? description : project.description,
@@ -156,8 +167,8 @@ router.put("/:id", requireAuth, async (req, res) => {
         githubToken: githubToken !== undefined ? githubToken : project.githubToken,
         updatedAt: new Date(),
       })
-      .where(eq(projectsTable.id as any, id))
-      .returning()) as any;
+      .where(eq(projectsTable.id, id))
+      .returning();
 
     res.json(updated);
   } catch (err) {
@@ -169,18 +180,18 @@ router.put("/:id", requireAuth, async (req, res) => {
 router.delete("/:id", requireAuth, async (req, res) => {
   try {
     const workspace = (req as any).workspace;
-    const id = req.params.id as string;
+    const id = req.params.id;
 
-    const project = (await db.select().from(projectsTable)
-      .where(and(eq(projectsTable.id as any, id), eq(projectsTable.workspaceId as any, workspace.id)))
-      .limit(1).then(r => r[0])) as any;
+    const [project] = await db.select().from(projectsTable)
+      .where(and(eq(projectsTable.id, id), eq(projectsTable.workspaceId, workspace.id)))
+      .limit(1);
 
     if (!project) {
       res.status(404).json({ error: "Project not found" });
       return;
     }
 
-    await db.delete(projectsTable).where(eq(projectsTable.id as any, id));
+    await db.delete(projectsTable).where(eq(projectsTable.id, id));
     res.json({ message: "Project deleted" });
   } catch (err) {
     req.log.error(err, "Error deleting project");
@@ -191,26 +202,26 @@ router.delete("/:id", requireAuth, async (req, res) => {
 router.post("/:id/scan", requireAuth, async (req, res) => {
   try {
     const workspace = (req as any).workspace;
-    const id = req.params.id as string;
+    const id = req.params.id;
     const { scanMode = "PASSIVE" } = req.body;
 
     const validModes = ["PASSIVE", "ACTIVE", "CONTINUOUS"];
     const resolvedMode = validModes.includes(scanMode) ? scanMode : "PASSIVE";
 
-    const project = (await db.select().from(projectsTable)
-      .where(and(eq(projectsTable.id as any, id), eq(projectsTable.workspaceId as any, workspace.id)))
-      .limit(1).then(r => r[0])) as any;
+    const [project] = await db.select().from(projectsTable)
+      .where(and(eq(projectsTable.id, id), eq(projectsTable.workspaceId, workspace.id)))
+      .limit(1);
 
     if (!project) {
       res.status(404).json({ error: "Project not found" });
       return;
     }
 
-    const [scan] = (await db.insert(scansTable).values({
+    const [scan] = await db.insert(scansTable).values({
       projectId: id,
       status: "PENDING",
       scanMode: resolvedMode,
-    }).returning()) as any;
+    }).returning();
 
     // Run the real security scanner in the background
     runRealScan(scan.id, project.targetUrl, resolvedMode as any).catch(err => {

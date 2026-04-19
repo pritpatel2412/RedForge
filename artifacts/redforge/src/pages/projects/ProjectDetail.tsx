@@ -409,7 +409,10 @@ export default function ProjectDetail() {
                       type="button"
                       onClick={async () => {
                         const url = (document.querySelector('input[name="slackUrl"]') as HTMLInputElement)?.value;
-                        if (!url) return toast.error("Enter a URL first");
+                        if (!url) {
+                          toast.error("Enter a URL first");
+                          return;
+                        }
                         setIsTestingSlack(true);
                         try {
                           const res = await fetch("/api/workspace/test-slack", {

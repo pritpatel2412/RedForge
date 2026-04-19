@@ -425,9 +425,17 @@ async function streamChat(
     buf = lines.pop() || "";
     for (const line of lines) {
       if (line.startsWith("event: done")) { onDone(); reader.cancel(); return; }
-      if (line.startsWith("event: error")) { onError("Stream error"); reader.cancel(); return; }
+      if (line.startsWith("event: error")) { 
+        // Try to parse error message from the next data line or current context if possible
+        // but for simplicity we'll just wait for the next loop or handle it here
+        continue; 
+      }
       if (line.startsWith("data: ")) {
-        try { const d = JSON.parse(line.slice(6)); if (d.text) onChunk(d.text); } catch {}
+        try { 
+          const d = JSON.parse(line.slice(6)); 
+          if (d.message) { onError(d.message); reader.cancel(); return; }
+          if (d.text) onChunk(d.text); 
+        } catch {}
       }
     }
   }

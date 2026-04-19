@@ -7,5 +7,10 @@
   "rewrites": [
     { "source": "/api/:path*", "destination": "/api/index.ts" },
     { "source": "/:path*",     "destination": "/index.html" }
-  ]
+  ],
+  "functions": {
+    "api/index.ts": {
+      "maxDuration": 90
+    }
+  }
 }

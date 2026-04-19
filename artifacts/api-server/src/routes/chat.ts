@@ -7,8 +7,8 @@ import { requireAuth } from "../lib/auth.js";
 const router = Router();
 
 const NIM_BASE  = "https://integrate.api.nvidia.com/v1";
-const PRIMARY_MODEL = process.env.NVIDIA_MODEL || "meta/llama-3.1-405b-instruct";
-const FALLBACK_MODEL = process.env.NVIDIA_FALLBACK_MODEL || "nvidia/llama-3.1-nemotron-70b-instruct";
+const PRIMARY_MODEL = process.env.NVIDIA_MODEL || "meta/llama-3.1-70b-instruct";
+const FALLBACK_MODEL = process.env.NVIDIA_FALLBACK_MODEL || "meta/llama-3.1-8b-instruct";
 
 // ── In-memory prompt cache to reduce per-message DB overhead ─────────────────
 const PROMPT_CACHE = new Map<string, { prompt: string; expires: number }>();
@@ -707,6 +707,10 @@ router.post("/", requireAuth, async (req, res) => {
   res.setHeader("X-Accel-Buffering", "no");
   res.flushHeaders();
 
+  // Send an immediate keep-alive ping to ensure the response starts immediately
+  // and prevent proxy/LB timeouts while the model prepares the first token.
+  res.write(': keep-alive\n\n');
+
   const primaryModel = PRIMARY_MODEL;
   const fallbackModel = FALLBACK_MODEL;
 
@@ -727,12 +731,12 @@ router.post("/", requireAuth, async (req, res) => {
         ],
         ...(isGlm ? { "extra_body": { "reasoning": true } } : {})
       }),
-      signal: AbortSignal.timeout(180000), // Increased to 3 minutes
+      signal: AbortSignal.timeout(60000), // 60 seconds (better fit for Vercel/Replit)
     });
 
     if (!nimResp.ok) {
       const errText = await nimResp.text();
-      throw new Error(`NVIDIA NIM error ${nimResp.status}: ${errText.slice(0, 200)}`);
+      throw new Error(`NVIDIA NIM error ${nimResp.status} [Model: ${model}]: ${errText.slice(0, 200)}`);
     }
 
     const reader = nimResp.body?.getReader();
@@ -783,20 +787,23 @@ router.post("/", requireAuth, async (req, res) => {
     }
   } catch (err) {
     if (primaryModel !== fallbackModel) {
-      console.error("Primary model failed, attempting fallback...", err);
+      console.error("[Chat Stream] Primary model failed:", err);
       try {
-        // Optionally send a small reset indicator if needed, but for now just try fallback
+        // Notify client we are switching to fallback
+        res.write(`data: ${JSON.stringify({ text: "\n\n*(Primary model too slow or unavailable, switching to secondary...)*\n\n" })}\n\n`);
         await runStream(fallbackModel, true);
         res.write(`event: done\ndata: {}\n\n`);
         res.end();
       } catch (fallbackErr) {
-        console.error("Fallback model also failed:", fallbackErr);
-        res.write(`event: error\ndata: ${JSON.stringify({ message: fallbackErr instanceof Error ? fallbackErr.message : "Stream error" })}\n\n`);
+        console.error("[Chat Stream] Fallback model also failed:", fallbackErr);
+        const errorMsg = fallbackErr instanceof Error ? fallbackErr.message : "All AI models are currently unavailable.";
+        res.write(`event: error\ndata: ${JSON.stringify({ message: errorMsg })}\n\n`);
         res.end();
       }
     } else {
-      console.error("Model failed:", err);
-      res.write(`event: error\ndata: ${JSON.stringify({ message: err instanceof Error ? err.message : "Stream error" })}\n\n`);
+      console.error("[Chat Stream] Model failed:", err);
+      const errorMsg = err instanceof Error ? err.message : "AI model failed to respond.";
+      res.write(`event: error\ndata: ${JSON.stringify({ message: errorMsg })}\n\n`);
       res.end();
     }
   }

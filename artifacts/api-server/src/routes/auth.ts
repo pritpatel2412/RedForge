@@ -394,8 +394,9 @@ function getBaseUrl(_req?: any): string {
     return appUrl.replace(/\/+$/, "");
   }
 
-  // Priority 2: Fallback to the known production domain
-  if (process.env.NODE_ENV === "production") {
+  // Priority 2: Force production domain if NOT in explicit development mode
+  // This handles Vercel and other cloud environments more reliably.
+  if (process.env.NODE_ENV === "production" || process.env.VERCEL === "1") {
     return "https://redforgex.vercel.app";
   }
 

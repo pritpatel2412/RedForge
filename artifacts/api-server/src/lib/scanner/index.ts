@@ -1,5 +1,5 @@
 import { db, scansTable, findingsTable, scanLogsTable, projectsTable, workspacesTable, workspaceMembersTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { sendScanComplete, sendCriticalFinding } from "../notifications/slack.js";
 import { createNotification } from "../notifications/create.js";
 import type { ScanMode, FindingInput, ScanContext } from "./modules/types.js";

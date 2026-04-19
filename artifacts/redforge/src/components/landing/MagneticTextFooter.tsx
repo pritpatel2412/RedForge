@@ -53,7 +53,7 @@ export default function MagneticTextFooter() {
         <div className="relative w-full h-full flex items-center justify-center px-10 md:px-20">
           <motion.h1 
             style={{ opacity, y: yReveal }}
-            className="pressure-test-title flex justify-between w-full uppercase text-center text-white font-extrabold tracking-[-0.03em] leading-[1] select-none"
+            className="text-pressure-title w-full h-full text-pressure-flex uppercase text-center font-extrabold select-none"
           >
             {CHARS.map((char, i) => (
               <MagneticChar 
@@ -135,12 +135,12 @@ function MagneticChar({ char, mouseX, mouseY }: MagneticCharProps) {
         color,
         y: yShift,
         fontFamily: "'Compressa VF', sans-serif",
-        fontSize: "min(280px, 16vw)",
+        fontSize: "118px",
         display: "inline-block",
         transformOrigin: "center center",
         willChange: "font-variation-settings, transform"
       }}
-      className="relative stroke cursor-default"
+      className="text-pressure-stroke relative cursor-default"
     >
       {char}
     </motion.span>

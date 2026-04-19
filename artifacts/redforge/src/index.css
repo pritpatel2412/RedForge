@@ -10,24 +10,29 @@
   font-display: swap;
 }
 
-.pressure-test-title span {
-  display: inline-block;
-  transform-origin: center center;
+.text-pressure-flex {
+  display: flex;
+  justify-content: space-between;
 }
 
-.stroke span {
+.text-pressure-stroke span {
   position: relative;
-  color: currentColor;
+  color: #ffffff;
 }
 
-.stroke span::after {
+.text-pressure-stroke span::after {
   content: attr(data-char);
   position: absolute;
-  inset: 0;
+  left: 0;
+  top: 0;
   color: transparent;
   z-index: -1;
-  -webkit-text-stroke-width: 2px;
-  -webkit-text-stroke-color: currentColor;
+  -webkit-text-stroke-width: 3px;
+  -webkit-text-stroke-color: #FF0000;
+}
+
+.text-pressure-title {
+  color: #ffffff;
 }
 
 @custom-variant dark (&:is(.dark *));

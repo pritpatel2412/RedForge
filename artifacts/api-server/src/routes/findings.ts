@@ -10,19 +10,20 @@ router.get("/", requireAuth, async (req, res) => {
     const workspace = (req as any).workspace;
     const { severity, status, projectId } = req.query;
 
-    const query = db.select({
+    const conditions = [eq(projectsTable.workspaceId, workspace.id)];
+    if (projectId) conditions.push(eq(findingsTable.projectId, projectId as string));
+    if (severity)  conditions.push(eq(findingsTable.severity, severity as string));
+    if (status)    conditions.push(eq(findingsTable.status, status as string));
+
+    const results = await db.select({
       finding: findingsTable,
       projectName: projectsTable.name,
     })
     .from(findingsTable)
     .innerJoin(projectsTable, eq(findingsTable.projectId, projectsTable.id))
-    .where(eq(projectsTable.workspaceId, workspace.id));
-
-    if (projectId) query.where(and(eq(projectsTable.workspaceId, workspace.id), eq(findingsTable.projectId, projectId as string)));
-    if (severity)  query.where(and(eq(projectsTable.workspaceId, workspace.id), eq(findingsTable.severity, severity as string)));
-    if (status)    query.where(and(eq(projectsTable.workspaceId, workspace.id), eq(findingsTable.status, status as string)));
-
-    const results = await query.orderBy(desc(findingsTable.createdAt)).limit(100);
+    .where(and(...conditions))
+    .orderBy(desc(findingsTable.createdAt))
+    .limit(100);
 
     res.json(results.map(r => ({
       ...r.finding,

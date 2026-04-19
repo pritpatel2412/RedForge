@@ -92,7 +92,7 @@ function MagneticChar({ char, mouseX, mouseY }: MagneticCharProps) {
   // We connect the motion values using a frame-sync'd transform
   // To avoid complex JS in transforms, we'll use a local transform that tracks proximity
   const weight = useTransform(mouseX, (latestX: number) => {
-    if (!charRef.current) return 400;
+    if (!charRef.current) return 200;
     const rect = charRef.current.getBoundingClientRect();
     const centerX = rect.left + rect.width / 2;
     const centerY = rect.top + rect.height / 2;
@@ -101,23 +101,23 @@ function MagneticChar({ char, mouseX, mouseY }: MagneticCharProps) {
     const dy = mouseY.get() - centerY;
     const dist = Math.sqrt(dx * dx + dy * dy);
     
-    // Proximity mapping
-    // If very close: thin (100)
-    // If middle: thick (900)
-    // If far: normal (300)
-    if (dist < 100) return 100;
-    if (dist < 400) return 300 + (1 - (dist / 400)) * 600;
-    return 300;
+    // Closer = Thicker (900), Far = Thinner (200)
+    if (dist < 500) {
+      return 200 + (1 - (dist / 500)) * 700;
+    }
+    return 200;
   });
 
   const smoothWeight = useSpring(weight, springConfig);
 
-  const scale = useTransform(smoothWeight, [100, 900], [1.05, 0.95]);
+  // Inversed Scale: Larger on hover
+  const scale = useTransform(smoothWeight, [200, 900], [1, 1.25]);
   const color = useTransform(
     smoothWeight, 
-    [100, 300, 900], 
-    ["#ff0000", "#ffffff", "#ffffff"]
+    [200, 700, 900], 
+    ["#a1a1aa", "#ffffff", "#e01e3d"] // Zinc to White to Red
   );
+  const yOffset = useTransform(smoothWeight, [200, 900], [0, -20]);
 
   return (
     <motion.div
@@ -126,10 +126,11 @@ function MagneticChar({ char, mouseX, mouseY }: MagneticCharProps) {
         fontVariationSettings: useTransform(smoothWeight, (v) => `'wght' ${Math.round(v)}`),
         scale,
         color,
+        y: yOffset,
         fontFamily: "'Inter', sans-serif",
         willChange: "font-variation-settings, transform"
       }}
-      className="text-[18vw] leading-none tracking-[-0.06em] transition-all duration-300 pointer-events-none"
+      className="text-[18vw] leading-none tracking-[-0.06em] pointer-events-none"
     >
       {char}
     </motion.div>

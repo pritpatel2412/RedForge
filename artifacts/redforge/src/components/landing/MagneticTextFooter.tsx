@@ -38,7 +38,7 @@ export default function MagneticTextFooter() {
       ref={containerRef}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
-      className="relative z-0 h-[80vh] flex flex-col items-center justify-center overflow-hidden bg-black"
+      className="relative z-0 h-[100vh] flex flex-col items-center justify-center overflow-hidden bg-black"
     >
       {/* Background decoration */}
       <div className="absolute inset-0 pointer-events-none">
@@ -47,7 +47,7 @@ export default function MagneticTextFooter() {
       </div>
       
       {/* ── Fixed Size Container Wrapper ── */}
-      <div className="relative w-full max-w-7xl h-full bg-transparent flex items-center justify-center px-10">
+      <div className="relative w-full h-full bg-transparent flex items-center justify-center px-10 md:px-20">
         <motion.h1 
           style={{ opacity, y }}
           className="pressure-test-title flex justify-between w-full uppercase text-center text-white font-extrabold tracking-[-0.03em] leading-[1] select-none"
@@ -133,7 +133,7 @@ function MagneticChar({ char, mouseX, mouseY }: MagneticCharProps) {
         color,
         y: yOffset,
         fontFamily: "'Compressa VF', sans-serif",
-        fontSize: "min(200px, 15vw)", // Responsive but with a fixed cap
+        fontSize: "min(300px, 20vw)", // Increased size cap
         display: "inline-block",
         transformOrigin: "center center",
         willChange: "font-variation-settings, transform"

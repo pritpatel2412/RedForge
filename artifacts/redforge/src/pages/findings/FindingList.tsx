@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, memo } from "react";
 import { Link } from "wouter";
 import { useListFindings } from "@workspace/api-client-react";
 import { Bug, ArrowRight, SlidersHorizontal, AlertTriangle } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, LazyMotion, domAnimation } from "framer-motion";
 import { SeverityBadge, FindingStatusBadge } from "@/components/Badges";
 import { formatDate } from "@/lib/utils";
 import CustomSelect from "@/components/CustomSelect";
@@ -34,6 +34,43 @@ const STATUS_OPTIONS = [
   { value: "FALSE_POSITIVE",label: "False Positive",dot: "#6366f1" },
 ];
 
+const FindingRow = memo(({ finding, index }: { finding: any; index: number }) => (
+  <motion.div
+    custom={index}
+    variants={cardVariants}
+    initial="hidden"
+    animate="visible"
+    style={{ willChange: "transform, opacity" }}
+  >
+    <Link
+      href={`/findings/${finding.id}`}
+      className="flex flex-col md:flex-row md:items-center justify-between px-5 py-4 hover:bg-white/3 transition-colors group gap-4"
+    >
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-3 mb-1.5">
+          <SeverityBadge severity={finding.severity} />
+          <h4 className="font-semibold text-white text-sm truncate group-hover:text-primary transition-colors">
+            {finding.title}
+          </h4>
+        </div>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+          <span className="text-zinc-400 font-medium">{finding.projectName}</span>
+          <span className="text-zinc-600">·</span>
+          <code className="font-mono bg-white/4 border border-white/8 px-1.5 py-0.5 rounded text-zinc-400">
+            {finding.endpoint}
+          </code>
+          <span className="text-zinc-600">·</span>
+          <span>{formatDate(finding.createdAt)}</span>
+        </div>
+      </div>
+      <div className="flex items-center gap-4 shrink-0">
+        <FindingStatusBadge status={finding.status} />
+        <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-all group-hover:translate-x-0.5 hidden md:block" />
+      </div>
+    </Link>
+  </motion.div>
+));
+
 export default function FindingList() {
   const [severity, setSeverity] = useState<string>("");
   const [status, setStatus] = useState<string>("");
@@ -46,12 +83,13 @@ export default function FindingList() {
   const criticalCount = findings?.filter(f => f.severity === "CRITICAL").length ?? 0;
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.22 }}
-      className="space-y-6"
-    >
+    <LazyMotion features={domAnimation}>
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.22 }}
+        className="space-y-6"
+      >
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div>
@@ -126,44 +164,12 @@ export default function FindingList() {
         ) : (
           <div className="divide-y divide-border/60">
             {findings?.map((finding, i) => (
-              <motion.div
-                key={finding.id}
-                custom={i}
-                variants={cardVariants}
-                initial="hidden"
-                animate="visible"
-              >
-                <Link
-                  href={`/findings/${finding.id}`}
-                  className="flex flex-col md:flex-row md:items-center justify-between px-5 py-4 hover:bg-white/3 transition-colors group gap-4"
-                >
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-3 mb-1.5">
-                      <SeverityBadge severity={finding.severity} />
-                      <h4 className="font-semibold text-white text-sm truncate group-hover:text-primary transition-colors">
-                        {finding.title}
-                      </h4>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-                      <span className="text-zinc-400 font-medium">{finding.projectName}</span>
-                      <span className="text-zinc-600">·</span>
-                      <code className="font-mono bg-white/4 border border-white/8 px-1.5 py-0.5 rounded text-zinc-400">
-                        {finding.endpoint}
-                      </code>
-                      <span className="text-zinc-600">·</span>
-                      <span>{formatDate(finding.createdAt)}</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-4 shrink-0">
-                    <FindingStatusBadge status={finding.status} />
-                    <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-all group-hover:translate-x-0.5 hidden md:block" />
-                  </div>
-                </Link>
-              </motion.div>
+              <FindingRow key={finding.id} finding={finding} index={i} />
             ))}
           </div>
         )}
       </div>
     </motion.div>
+    </LazyMotion>
   );
 }

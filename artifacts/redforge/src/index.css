@@ -58,6 +58,7 @@
   html {
     @apply bg-background text-foreground font-sans antialiased;
     font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+    scroll-behavior: smooth;
   }
 
   body {
@@ -237,6 +238,10 @@
   100% { transform: translateY(100vh); }
 }
 
+.scan-line {
+  will-change: transform;
+}
+
 /* Floating animation */
 @keyframes float {
   0%, 100% { transform: translateY(0px); }
@@ -245,6 +250,7 @@
 
 .animate-float {
   animation: float 6s ease-in-out infinite;
+  will-change: transform;
 }
 
 /* Gradient orb blobs */

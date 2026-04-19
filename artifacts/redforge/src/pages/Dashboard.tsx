@@ -1,12 +1,12 @@
-import { useRef, useEffect, useState } from "react";
+import { useRef, useEffect, useState, memo, useMemo } from "react";
 import { useGetDashboardStats } from "@workspace/api-client-react";
 import { Link } from "wouter";
 import { Shield, Bug, Target, Activity, ArrowRight, ShieldAlert, TrendingUp, Zap } from "lucide-react";
-import { motion, useInView, AnimatePresence } from "framer-motion";
+import { motion, useInView, AnimatePresence, LazyMotion, domAnimation } from "framer-motion";
 import { formatDate } from "@/lib/utils";
 import { SeverityBadge, StatusBadge } from "@/components/Badges";
 
-function AnimatedCount({ value, className }: { value: number; className?: string }) {
+const AnimatedCount = memo(({ value, className }: { value: number; className?: string }) => {
   const ref = useRef<HTMLSpanElement>(null);
   const [displayed, setDisplayed] = useState(value);
   const animRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -34,7 +34,7 @@ function AnimatedCount({ value, className }: { value: number; className?: string
   }, [isInView, value]);
 
   return <span ref={ref} className={className}>{displayed}</span>;
-}
+});
 
 const cardVariants = {
   hidden: { opacity: 0, y: 20, scale: 0.97 },
@@ -75,10 +75,10 @@ export default function Dashboard() {
 
   if (!stats) return null;
 
-  const statCards = [
+  const statCards = useMemo(() => [
     {
       label: "Total Projects",
-      value: stats.totalProjects,
+      value: stats?.totalProjects || 0,
       icon: Shield,
       iconColor: "text-blue-400",
       iconBg: "bg-blue-500/10",
@@ -87,7 +87,7 @@ export default function Dashboard() {
     },
     {
       label: "Open Findings",
-      value: stats.openFindings,
+      value: stats?.openFindings || 0,
       icon: Bug,
       iconColor: "text-amber-400",
       iconBg: "bg-amber-500/10",
@@ -96,7 +96,7 @@ export default function Dashboard() {
     },
     {
       label: "Critical Issues",
-      value: stats.criticalFindings,
+      value: stats?.criticalFindings || 0,
       icon: ShieldAlert,
       iconColor: "text-primary",
       iconBg: "bg-primary/10",
@@ -105,22 +105,23 @@ export default function Dashboard() {
     },
     {
       label: "Scans this Month",
-      value: stats.scansThisMonth,
+      value: stats?.scansThisMonth || 0,
       icon: Activity,
       iconColor: "text-emerald-400",
       iconBg: "bg-emerald-500/10",
       iconBorder: "border-emerald-500/20",
       accent: null,
     },
-  ];
+  ], [stats]);
 
   return (
-    <motion.div
-      initial="hidden"
-      animate="visible"
-      variants={stagger}
-      className="space-y-8"
-    >
+    <LazyMotion features={domAnimation}>
+      <motion.div
+        initial="hidden"
+        animate="visible"
+        variants={stagger}
+        className="space-y-8"
+      >
       {/* Header */}
       <motion.div variants={cardVariants} className="flex items-center justify-between">
         <div>
@@ -272,5 +273,6 @@ export default function Dashboard() {
         </motion.div>
       </motion.div>
     </motion.div>
+    </LazyMotion>
   );
 }

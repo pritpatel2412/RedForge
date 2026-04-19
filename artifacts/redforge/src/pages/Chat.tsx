@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect, useCallback, useMemo } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useState, useRef, useEffect, useCallback, useMemo, memo } from "react";
+import { motion, AnimatePresence, LazyMotion, domAnimation } from "framer-motion";
 import {
   Bot, Send, Copy, Check, Sparkles, RotateCcw, User,
   AlertTriangle, Shield, ChevronRight, Zap, Code2,
@@ -56,7 +56,11 @@ function MicWaveform({ isRecording }: { isRecording: boolean }) {
     <div className="flex items-center gap-[2.5px] h-9">
       {bars.map((bar, i) => (
         <motion.div key={i} className="rounded-full"
-          style={{ width: 3, backgroundColor: i % 3 === 0 ? "hsl(348 83% 55%)" : i % 3 === 1 ? "hsl(348 83% 45%)" : "hsl(348 83% 35%)" }}
+          style={{ 
+            width: 3, 
+            backgroundColor: i % 3 === 0 ? "hsl(348 83% 55%)" : i % 3 === 1 ? "hsl(348 83% 45%)" : "hsl(348 83% 35%)",
+            willChange: "height" 
+          }}
           animate={{ height: isRecording ? [bar.h1, bar.h2, bar.h3, bar.h4, bar.h1] : 4 }}
           transition={{ duration: 0.6, repeat: isRecording ? Infinity : 0, delay: bar.delay, repeatType: "reverse", ease: "easeInOut" }}
         />
@@ -66,7 +70,7 @@ function MicWaveform({ isRecording }: { isRecording: boolean }) {
 }
 
 // ─── Markdown renderer ────────────────────────────────────────────────────────
-function CodeBlock({ lang, code }: { lang: string; code: string }) {
+const CodeBlock = memo(({ lang, code }: { lang: string; code: string }) => {
   const [copied, setCopied] = useState(false);
   const copy = () => {
     navigator.clipboard.writeText(code).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); });
@@ -86,7 +90,7 @@ function CodeBlock({ lang, code }: { lang: string; code: string }) {
       <pre className="p-4 text-xs font-mono text-zinc-200 overflow-x-auto leading-relaxed whitespace-pre-wrap"><code>{code}</code></pre>
     </div>
   );
-}
+});
 
 function renderInline(text: string): React.ReactNode[] {
   const regex = /(\*\*[^*]+\*\*|`[^`]+`|\*[^*]+\*)/g;
@@ -104,7 +108,7 @@ function renderInline(text: string): React.ReactNode[] {
   return parts;
 }
 
-function TextSection({ text }: { text: string }) {
+const TextSection = memo(({ text }: { text: string }) => {
   const lines = text.split("\n");
   const elements: React.ReactNode[] = [];
   let i = 0;
@@ -185,9 +189,9 @@ function TextSection({ text }: { text: string }) {
   }
   flushList();
   return <>{elements}</>;
-}
+});
 
-function MarkdownMessage({ content }: { content: string }) {
+const MarkdownMessage = memo(({ content }: { content: string }) => {
   const segments: React.ReactNode[] = [];
   const re = /```(\w*)\n?([\s\S]*?)```/g;
   let last = 0; let m: RegExpExecArray | null; let idx = 0;
@@ -198,7 +202,7 @@ function MarkdownMessage({ content }: { content: string }) {
   }
   if (last < content.length) segments.push(<TextSection key={idx++} text={content.slice(last)} />);
   return <div className="space-y-0.5">{segments}</div>;
-}
+});
 
 function TypingCursor() {
   return <span className="inline-block w-0.5 h-3.5 bg-primary ml-0.5 animate-pulse align-middle" />;
@@ -209,6 +213,7 @@ function ThinkingDots() {
     <div className="flex items-center gap-1 py-1">
       {[0, 1, 2].map(i => (
         <motion.div key={i} className="w-1.5 h-1.5 rounded-full bg-primary/70"
+          style={{ willChange: "opacity, transform" }}
           animate={{ opacity: [0.3, 1, 0.3], scale: [0.8, 1.1, 0.8] }}
           transition={{ duration: 1.2, repeat: Infinity, delay: i * 0.2 }} />
       ))}
@@ -217,7 +222,7 @@ function ThinkingDots() {
 }
 
 // ─── Reasoning Block ────────────────────────────────────────────────────────────
-function ReasoningBlock({ content, streaming }: { content: string; streaming?: boolean }) {
+const ReasoningBlock = memo(({ content, streaming }: { content: string; streaming?: boolean }) => {
   const [isOpen, setIsOpen] = useState(false);
   useEffect(() => {
     if (streaming) setIsOpen(true);
@@ -242,6 +247,7 @@ function ReasoningBlock({ content, streaming }: { content: string; streaming?: b
             animate={{ height: "auto" }}
             exit={{ height: 0 }}
             className="overflow-hidden"
+            style={{ willChange: "height" }}
           >
             <div className="px-4 pb-3 text-[11px] text-zinc-400 font-mono whitespace-pre-wrap border-t border-primary/10 pt-2 leading-relaxed">
               {content || "Analyzing..."}
@@ -252,7 +258,7 @@ function ReasoningBlock({ content, streaming }: { content: string; streaming?: b
       </AnimatePresence>
     </div>
   );
-}
+});
 
 // ─── Message Action Bar ───────────────────────────────────────────────────────
 function MessageActions({
@@ -1018,7 +1024,10 @@ export default function Chat() {
 
   // ─── Full layout ─────────────────────────────────────────────────────────
   return (
-    <div className="flex flex-col h-full max-h-[calc(100vh-3.5rem)] -mx-6 -mt-6">
+    <LazyMotion features={domAnimation}>
+      <div className="flex flex-col h-full max-h-[calc(100vh-3.5rem)] -mx-6 -mt-6">
+        {/* ... Rest of the component remains the same ... */}
+        {/* Note: I'm wrapping the entire return content in LazyMotion */}
 
       {/* ── Header ── */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0" style={{ background: "oklch(5% 0 0)" }}>
@@ -1371,6 +1380,6 @@ export default function Chat() {
           </div>
         </div>
       </div>
-    </div>
+    </LazyMotion>
   );
 }

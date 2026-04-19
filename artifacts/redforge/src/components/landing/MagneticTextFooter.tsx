@@ -135,7 +135,7 @@ function MagneticChar({ char, mouseX, mouseY }: MagneticCharProps) {
         color,
         y: yShift,
         fontFamily: "'Compressa VF', sans-serif",
-        fontSize: "118px",
+        fontSize: "min(300px, 18vw)",
         display: "inline-block",
         transformOrigin: "center center",
         willChange: "font-variation-settings, transform"

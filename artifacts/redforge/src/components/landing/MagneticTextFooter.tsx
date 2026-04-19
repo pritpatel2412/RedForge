@@ -4,8 +4,8 @@ import { motion, useSpring, useTransform, useMotionValue, useScroll } from "fram
 const CHARS = "REDFORGE".split("");
 
 /**
- * Fully optimized Magnetic Text Footer based on UILORA reference logic.
- * Features: justify-between layout for full-width spanning and multi-axis variable font tracking.
+ * Sticky Reveal Magnetic Footer.
+ * Placed behind the main content to create a premium "revelation" effect as the user reaches the end.
  */
 export default function MagneticTextFooter() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -24,54 +24,59 @@ export default function MagneticTextFooter() {
     mouseY.set(-1000);
   };
 
-  // Scroll disclosure logic
+  // Scroll discovery logic for the revelation effect
   const { scrollYProgress } = useScroll({
     target: containerRef,
     offset: ["start end", "end end"]
   });
 
-  const opacity = useTransform(scrollYProgress, [0.4, 0.9], [0, 1]);
-  const y = useTransform(scrollYProgress, [0, 1], [100, 0]);
+  // Animation values for smooth entrance
+  const opacity = useTransform(scrollYProgress, [0.3, 0.8], [0, 1]);
+  const yReveal = useTransform(scrollYProgress, [0, 1], [50, 0]);
 
   return (
     <div 
       ref={containerRef}
-      onMouseMove={handleMouseMove}
-      onMouseLeave={handleMouseLeave}
-      className="relative z-0 h-[100vh] flex flex-col items-center justify-center overflow-hidden bg-black"
+      className="relative w-full h-[60vh] bg-black pointer-events-none"
     >
-      {/* Background decoration */}
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(224,30,61,0.05)_0%,transparent_70%)]" />
-        <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
-      </div>
-      
-      {/* ── Fixed Size Container Wrapper ── */}
-      <div className="relative w-full h-full bg-transparent flex items-center justify-center px-10 md:px-20">
-        <motion.h1 
-          style={{ opacity, y }}
-          className="pressure-test-title flex justify-between w-full uppercase text-center text-white font-extrabold tracking-[-0.03em] leading-[1] select-none"
-        >
-          {CHARS.map((char, i) => (
-            <MagneticChar 
-              key={i} 
-              char={char} 
-              mouseX={mouseX} 
-              mouseY={mouseY} 
-            />
-          ))}
-        </motion.h1>
-      </div>
-
-      <motion.div 
-        style={{ opacity }}
-        className="absolute bottom-16 flex flex-col items-center gap-3 pointer-events-none"
+      <div 
+        onMouseMove={handleMouseMove}
+        onMouseLeave={handleMouseLeave}
+        className="sticky bottom-0 left-0 w-full h-[60vh] flex flex-col items-center justify-center overflow-hidden pointer-events-auto"
       >
-        <div className="w-px h-16 bg-gradient-to-b from-transparent via-primary/30 to-transparent" />
-        <p className="text-[11px] font-mono uppercase tracking-[0.5em] text-zinc-500">
-          Crafted for the future of API Security
-        </p>
-      </motion.div>
+        {/* Background Gradient */}
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(224,30,61,0.08)_0%,transparent_70%)]" />
+        </div>
+        
+        {/* ── Brand Typography ── */}
+        <div className="relative w-full h-full flex items-center justify-center px-10 md:px-20">
+          <motion.h1 
+            style={{ opacity, y: yReveal }}
+            className="pressure-test-title flex justify-between w-full uppercase text-center text-white font-extrabold tracking-[-0.03em] leading-[1] select-none"
+          >
+            {CHARS.map((char, i) => (
+              <MagneticChar 
+                key={i} 
+                char={char} 
+                mouseX={mouseX} 
+                mouseY={mouseY} 
+              />
+            ))}
+          </motion.h1>
+        </div>
+
+        {/* Footer Detail */}
+        <motion.div 
+          style={{ opacity }}
+          className="absolute bottom-12 flex flex-col items-center gap-3 pointer-events-none"
+        >
+          <div className="w-px h-12 bg-gradient-to-b from-transparent via-primary/40 to-transparent" />
+          <p className="text-[10px] font-mono uppercase tracking-[0.6em] text-zinc-600">
+            Redefining the perimeter
+          </p>
+        </motion.div>
+      </div>
     </div>
   );
 }
@@ -84,14 +89,13 @@ interface MagneticCharProps {
 
 function MagneticChar({ char, mouseX, mouseY }: MagneticCharProps) {
   const charRef = useRef<HTMLSpanElement>(null);
-
-  // Springs for maximum butter-smoothness
-  const springConfig = { damping: 40, stiffness: 300, mass: 0.3 };
+  const springConfig = { damping: 45, stiffness: 350, mass: 0.3 };
   
   const distance = useMotionValue(1000);
 
-  const weightValue = useTransform(mouseX, (latestX: number) => {
-    if (!charRef.current) return 200;
+  // Compute distance in a high-performance transform
+  const proxUpdate = useTransform(mouseX, (latestX: number) => {
+    if (!charRef.current) return 1000;
     const rect = charRef.current.getBoundingClientRect();
     const centerX = rect.left + rect.width / 2;
     const centerY = rect.top + rect.height / 2;
@@ -101,27 +105,25 @@ function MagneticChar({ char, mouseX, mouseY }: MagneticCharProps) {
     return Math.sqrt(dx * dx + dy * dy);
   });
 
-  const smoothWeightSignal = useSpring(weightValue, springConfig);
+  const smoothDistance = useSpring(proxUpdate, springConfig);
 
-  // Map distance to Compressa VF axes
-  // Proximity range 0-500px
-  const wght = useTransform(smoothWeightSignal, [0, 500], [900, 100]);
-  const wdth = useTransform(smoothWeightSignal, [0, 500], [150, 5]);
-  const ital = useTransform(smoothWeightSignal, [0, 500], [1, 0]);
+  // Variable Font Axes Mapping
+  const wght = useTransform(smoothDistance, [0, 400], [900, 100]);
+  const wdth = useTransform(smoothDistance, [0, 400], [150, 5]);
+  const ital = useTransform(smoothDistance, [0, 400], [1, 0]);
 
-  // Combined variation settings
   const fontVariationSettings = useTransform(
     [wght, wdth, ital],
     ([w, wd, i]) => `'wght' ${Math.round(w as number)}, 'wdth' ${Math.round(wd as number)}, 'ital' ${i}`
   );
 
-  const scale = useTransform(smoothWeightSignal, [0, 500], [1.3, 1]);
+  const scale = useTransform(smoothDistance, [0, 400], [1.25, 1]);
   const color = useTransform(
-    smoothWeightSignal,
-    [0, 300, 500],
-    ["#e01e3d", "#ffffff", "#52525b"] // Red to White to Zinc-500
+    smoothDistance,
+    [0, 250, 400],
+    ["#e01e3d", "#ffffff", "#3f3f46"] // Red -> White -> Zinc-700
   );
-  const yOffset = useTransform(smoothWeightSignal, [0, 500], [-30, 0]);
+  const yShift = useTransform(smoothDistance, [0, 400], [-25, 0]);
 
   return (
     <motion.span
@@ -131,14 +133,14 @@ function MagneticChar({ char, mouseX, mouseY }: MagneticCharProps) {
         fontVariationSettings,
         scale,
         color,
-        y: yOffset,
+        y: yShift,
         fontFamily: "'Compressa VF', sans-serif",
-        fontSize: "min(300px, 20vw)", // Increased size cap
+        fontSize: "min(280px, 16vw)",
         display: "inline-block",
         transformOrigin: "center center",
         willChange: "font-variation-settings, transform"
       }}
-      className="relative stroke cursor-pointer"
+      className="relative stroke cursor-default"
     >
       {char}
     </motion.span>

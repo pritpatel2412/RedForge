@@ -2,7 +2,7 @@ import { Router } from "express";
 import bcrypt from "bcryptjs";
 import { randomUUID } from "crypto";
 import { db, usersTable, sessionsTable, workspacesTable, workspaceMembersTable, scansTable, findingsTable, projectsTable } from "@workspace/db";
-import { eq, and, gt } from "drizzle-orm";
+import { eq, and, gt, sql } from "drizzle-orm";
 import { getUserFromRequest } from "../lib/auth.js";
 import { sendWelcomeEmail } from "../lib/email.js";
 import { logActivity } from "../lib/activity.js";
@@ -106,33 +106,40 @@ router.get("/stats", async (req, res) => {
     if (!result) { res.status(401).json({ error: "Unauthorized" }); return; }
     const { user, workspace } = result;
 
-    const sessions = await db.select().from(sessionsTable)
-      .where(and(eq(sessionsTable.userId as any, user.id), gt(sessionsTable.expiresAt as any, new Date())));
+    const [sessionsCount] = await db.select({ count: sql<number>`count(*)` })
+      .from(sessionsTable)
+      .where(and(eq(sessionsTable.userId, user.id), gt(sessionsTable.expiresAt, new Date())));
 
     let totalScans = 0, totalFindings = 0, criticalFindings = 0;
 
     if (workspace) {
-      const projects = await db.select().from(projectsTable)
-        .where(eq(projectsTable.workspaceId as any, workspace.id));
-      const projectIds = projects.map(p => p.id);
+      // Use SQL aggregation for efficiency
+      const [scansStats] = await db.select({
+        count: sql<number>`count(*)`
+      })
+      .from(scansTable)
+      .innerJoin(projectsTable, eq(scansTable.projectId, projectsTable.id))
+      .where(eq(projectsTable.workspaceId, workspace.id));
+      
+      totalScans = Number(scansStats?.count || 0);
 
-      if (projectIds.length > 0) {
-        const allScans = await db.select().from(scansTable);
-        const wsScans = allScans.filter(s => projectIds.includes(s.projectId));
-        totalScans = wsScans.length;
+      const [findingsStats] = await db.select({
+        total: sql<number>`count(*)`,
+        critical: sql<number>`count(*) FILTER (WHERE severity = 'CRITICAL')`
+      })
+      .from(findingsTable)
+      .innerJoin(projectsTable, eq(findingsTable.projectId, projectsTable.id))
+      .where(eq(projectsTable.workspaceId, workspace.id));
 
-        const allFindings = await db.select().from(findingsTable);
-        const wsFindings = allFindings.filter(f => projectIds.includes(f.projectId));
-        totalFindings = wsFindings.length;
-        criticalFindings = wsFindings.filter(f => f.severity === "CRITICAL").length;
-      }
+      totalFindings = Number(findingsStats?.total || 0);
+      criticalFindings = Number(findingsStats?.critical || 0);
     }
 
     res.json({
       totalScans,
       totalFindings,
       criticalFindings,
-      activeSessions: sessions.length,
+      activeSessions: Number(sessionsCount?.count || 0),
       memberSince: user.createdAt,
     });
   } catch (err) {
@@ -148,55 +155,64 @@ router.get("/heatmap", async (req, res) => {
     if (!result) { res.status(401).json({ error: "Unauthorized" }); return; }
     const { workspace } = result;
 
-    // Build a map of date → count covering exactly last 365 days
-    const today    = new Date();
-    const yearAgo  = new Date(today);
+    const today = new Date();
+    const yearAgo = new Date(today);
     yearAgo.setDate(yearAgo.getDate() - 364);
     yearAgo.setHours(0, 0, 0, 0);
 
     const dayCount: Record<string, number> = {};
-    for (let d = new Date(yearAgo); d <= today; d.setDate(d.getDate() + 1)) {
+    // Ensure all 365 days are present to prevent frontend "undefined" crashes
+    for (let i = 0; i < 365; i++) {
+      const d = new Date(yearAgo);
+      d.setDate(d.getDate() + i);
       dayCount[d.toISOString().slice(0, 10)] = 0;
     }
 
     if (workspace) {
-      const projects = await db.select().from(projectsTable)
-        .where(eq(projectsTable.workspaceId as any, workspace.id));
-      const projectIds = projects.map(p => p.id);
+      // Use SQL to group findings by day for efficiency
+      const history = await db.select({
+        day: sql<string>`DATE(created_at)::text`,
+        count: sql<number>`count(*)`
+      })
+      .from(findingsTable)
+      .innerJoin(projectsTable, eq(findingsTable.projectId, projectsTable.id))
+      .where(and(
+        eq(projectsTable.workspaceId, workspace.id),
+        gt(findingsTable.createdAt, yearAgo)
+      ))
+      .groupBy(sql`DATE(created_at)`);
 
-      if (projectIds.length > 0) {
-        const allFindings = await db.select({ createdAt: findingsTable.createdAt, projectId: findingsTable.projectId })
-          .from(findingsTable);
-
-        for (const f of allFindings) {
-          if (!projectIds.includes(f.projectId)) continue;
-          const day = new Date(f.createdAt).toISOString().slice(0, 10);
-          if (day in dayCount) dayCount[day]++;
+      for (const row of history) {
+        if (row.day in dayCount) {
+          dayCount[row.day] = Number(row.count);
         }
       }
     }
 
-    // Compute streak (consecutive days with ≥1 finding, ending today)
     const days = Object.keys(dayCount).sort();
     let currentStreak = 0;
     let maxStreak = 0;
     let streak = 0;
-    for (let i = days.length - 1; i >= 0; i--) {
+    
+    for (let i = 0; i < days.length; i++) {
       if (dayCount[days[i]] > 0) {
         streak++;
-        if (i === days.length - 1 || days[i + 1] === days[i]) currentStreak = streak;
       } else {
         if (streak > maxStreak) maxStreak = streak;
         streak = 0;
-        if (i === days.length - 1) break; // today had 0, streak is 0
+      }
+      
+      // If today (the last day), the current streak is the cumulative streak up to now
+      if (i === days.length - 1) {
+        currentStreak = dayCount[days[i]] > 0 ? streak : 0;
       }
     }
     if (streak > maxStreak) maxStreak = streak;
 
-    const totalInYear = Object.values(dayCount).reduce((a, b) => a + b, 0);
+    const totalInYear = Object.values(dayCount).reduce((a, b) => a + Number(b), 0);
 
     res.json({
-      days: dayCount,          // { "2024-04-18": 3, ... }
+      days: dayCount,
       totalInYear,
       currentStreak,
       maxStreak,

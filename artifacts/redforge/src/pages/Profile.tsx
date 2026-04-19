@@ -45,7 +45,7 @@ function FindingsHeatmap({ data }: {
     }
   }, [data]);
 
-  if (!data) {
+  if (!data || !data.days) {
     return (
       <div className="h-36 skeleton rounded-2xl" />
     );

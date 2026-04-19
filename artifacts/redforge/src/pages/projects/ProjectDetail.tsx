@@ -443,6 +443,67 @@ export default function ProjectDetail() {
                       {isUpdating ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save Settings"}
                     </button>
                   </div>
+              </div>
+
+              <div className="space-y-4 pt-8 border-t border-border">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-bold text-white uppercase tracking-wider">GitHub Integration</h3>
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-primary/20 text-primary border border-primary/30 uppercase">SAST</span>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Connect your repository for source code analysis and secret scanning.
+                </p>
+                <form 
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    const repo = (e.target as any).githubRepo.value;
+                    const branch = (e.target as any).githubBranch.value;
+                    const token = (e.target as any).githubToken.value;
+                    updateProj({ id, data: { githubRepo: repo, githubBranch: branch, githubToken: token } } as any);
+                  }}
+                  className="space-y-4"
+                >
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold text-zinc-500 uppercase">Repository</label>
+                      <input 
+                        name="githubRepo"
+                        type="text" 
+                        defaultValue={(projData as any).githubRepo || ""}
+                        placeholder="owner/repo"
+                        className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-primary text-sm transition-all"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold text-zinc-500 uppercase">Branch</label>
+                      <input 
+                        name="githubBranch"
+                        type="text" 
+                        defaultValue={(projData as any).githubBranch || "main"}
+                        placeholder="main"
+                        className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-primary text-sm transition-all"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold text-zinc-500 uppercase">Access Token / PAT</label>
+                    <input 
+                      name="githubToken"
+                      type="password" 
+                      defaultValue={(projData as any).githubToken || ""}
+                      placeholder="ghp_xxxxxxxxxxxx"
+                      className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-primary text-sm transition-all"
+                    />
+                  </div>
+                  <div className="flex justify-end pt-2">
+                    <button 
+                      type="submit"
+                      disabled={isUpdating}
+                      className="px-6 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl font-semibold text-sm transition-all disabled:opacity-50 border border-border"
+                    >
+                      {isUpdating ? <Loader2 className="w-4 h-4 animate-spin" /> : "Update GitHub Link"}
+                    </button>
+                  </div>
                 </form>
               </div>
             </div>

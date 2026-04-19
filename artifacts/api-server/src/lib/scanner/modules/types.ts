@@ -69,6 +69,8 @@ export type ScanMode = "PASSIVE" | "ACTIVE" | "CONTINUOUS";
 
 export interface ScanContext {
   scanId: string;
+  projectId: string;
+  projectData: any;
   targetUrl: string;
   hostname: string;
   scanMode: ScanMode;

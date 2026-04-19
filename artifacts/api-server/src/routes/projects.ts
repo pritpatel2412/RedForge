@@ -39,7 +39,7 @@ router.get("/", requireAuth, async (req, res) => {
 router.post("/", requireAuth, async (req, res) => {
   try {
     const workspace = (req as any).workspace;
-    const { name, description, targetUrl, targetType, slackWebhookUrl } = req.body;
+    const { name, description, targetUrl, targetType, slackWebhookUrl, githubRepo, githubBranch, githubToken } = req.body;
 
     if (!name || !targetUrl || !targetType) {
       res.status(400).json({ error: "name, targetUrl, and targetType are required" });
@@ -69,6 +69,9 @@ router.post("/", requireAuth, async (req, res) => {
       targetType: targetType || "WEB_APP",
       status: "active",
       slackWebhookUrl: (slackWebhookUrl && slackWebhookUrl.startsWith("https://hooks.slack.com/")) ? slackWebhookUrl : null,
+      githubRepo: githubRepo || null,
+      githubBranch: githubBranch || "main",
+      githubToken: githubToken || null,
     }).returning()) as any;
 
     res.status(201).json(project);
@@ -123,7 +126,7 @@ router.put("/:id", requireAuth, async (req, res) => {
   try {
     const workspace = (req as any).workspace;
     const id = req.params.id as string;
-    const { name, description, targetUrl, status, slackWebhookUrl } = req.body;
+    const { name, description, targetUrl, status, slackWebhookUrl, githubRepo, githubBranch, githubToken } = req.body;
 
     const [project] = await db.select().from(projectsTable)
       .where(and(eq(projectsTable.id as any, id), eq(projectsTable.workspaceId as any, workspace.id)))
@@ -143,6 +146,9 @@ router.put("/:id", requireAuth, async (req, res) => {
         slackWebhookUrl: (slackWebhookUrl !== undefined && (slackWebhookUrl === null || slackWebhookUrl.startsWith("https://hooks.slack.com/"))) 
           ? slackWebhookUrl 
           : project.slackWebhookUrl,
+        githubRepo: githubRepo !== undefined ? githubRepo : project.githubRepo,
+        githubBranch: githubBranch !== undefined ? githubBranch : project.githubBranch,
+        githubToken: githubToken !== undefined ? githubToken : project.githubToken,
         updatedAt: new Date(),
       })
       .where(eq(projectsTable.id as any, id))

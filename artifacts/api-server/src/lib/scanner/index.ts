@@ -16,6 +16,7 @@ import { runSSRFRedirectModule }   from "./modules/ssrfRedirect.js";
 import { runDNSSecurityModule }    from "./modules/dnsSecurity.js";
 import { runAPISecurityModule }    from "./modules/apiSecurity.js";
 import { runWordPressModule }      from "./modules/wordpressScanner.js";
+import { runGitHubSASTModule }      from "./modules/github.js";
 import { correlateFindings, computeRiskScore } from "./modules/correlationEngine.js";
 import { enrichWithRemediation }  from "./modules/remediationEngine.js";
 import { enrichWithCompliance }   from "./modules/complianceMapping.js";
@@ -233,6 +234,8 @@ export async function runRealScan(
     // Shared scan context for all modules
     const ctx: ScanContext = {
       scanId,
+      projectId: scan.projectId,
+      projectData: project,
       targetUrl,
       hostname,
       scanMode,
@@ -295,6 +298,7 @@ export async function runRealScan(
       dnsFindings,
       apiFindings,
       wpFindings,
+      githubFindings,
     ] = await Promise.all([
       runModuleSafe("TLS/Cookies",         scanId, () => runTLSCookiesModule(ctx)),
       runModuleSafe("Headers",             scanId, () => runHeadersModule(ctx)),
@@ -306,11 +310,12 @@ export async function runRealScan(
       runModuleSafe("DNS Security",        scanId, () => runDNSSecurityModule(ctx)),
       runModuleSafe("API Security",        scanId, () => runAPISecurityModule(ctx)),
       runModuleSafe("WordPress",           scanId, () => runWordPressModule(ctx)),
-    ]);
+      runModuleSafe("GitHub SAST",         scanId, () => runGitHubSASTModule(ctx)),
+    ] as any);
 
     findings.push(...tlsFindings, ...headerFindings, ...infoFindings,
       ...authFindings, ...supplyFindings, ...xssFindings, ...ssrfFindings,
-      ...dnsFindings, ...apiFindings, ...wpFindings);
+      ...dnsFindings, ...apiFindings, ...wpFindings, ...githubFindings);
 
     await addLog(scanId, "INFO", `✓ Parallel modules complete — ${findings.length} raw findings`);
 

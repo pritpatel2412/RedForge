@@ -12,6 +12,9 @@ export const projectsTable = pgTable("projects", {
   targetType: varchar("target_type", { length: 50 }).notNull().default("WEB_APP"),
   status: varchar("status", { length: 50 }).notNull().default("active"),
   slackWebhookUrl: text("slack_webhook_url"),
+  githubRepo: varchar("github_repo", { length: 255 }),
+  githubBranch: varchar("github_branch", { length: 100 }).default("main"),
+  githubToken: text("github_token"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

@@ -14,6 +14,9 @@ export default function ProjectNew() {
   const [targetUrl, setTargetUrl] = useState("");
   const [targetType, setTargetType] = useState<"WEB_APP" | "API" | "MOBILE_API" | "GRAPHQL">("WEB_APP");
   const [slackUrl, setSlackUrl] = useState("");
+  const [githubRepo, setGithubRepo] = useState("");
+  const [githubBranch, setGithubBranch] = useState("main");
+  const [githubToken, setGithubToken] = useState("");
 
   const { mutate: create, isPending } = useCreateProject({
     mutation: {
@@ -30,7 +33,18 @@ export default function ProjectNew() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    create({ data: { name, description, targetUrl, targetType, slackWebhookUrl: slackUrl } as any });
+    create({ 
+      data: { 
+        name, 
+        description, 
+        targetUrl, 
+        targetType, 
+        slackWebhookUrl: slackUrl,
+        githubRepo,
+        githubBranch,
+        githubToken 
+      } as any 
+    });
   };
 
   const types = [
@@ -125,8 +139,50 @@ export default function ProjectNew() {
             value={slackUrl}
             onChange={e => setSlackUrl(e.target.value)}
             placeholder="https://hooks.slack.com/services/..."
-            className="w-full bg-background border border-border rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
+            className="w-full bg-background border border-border rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all text-sm"
           />
+        </div>
+
+        <div className="space-y-6 pt-6 border-t border-border">
+          <div className="flex items-center justify-between">
+            <label className="text-sm font-medium text-zinc-300 block">GitHub Integration (SAST)</label>
+            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-primary/20 text-primary border border-primary/30 uppercase">Experimental</span>
+          </div>
+          <p className="text-xs text-muted-foreground">Optional: Connect your source code repository for secret scanning and static analysis.</p>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label className="text-xs text-zinc-500 font-medium">Repository</label>
+              <input 
+                type="text" 
+                value={githubRepo}
+                onChange={e => setGithubRepo(e.target.value)}
+                placeholder="e.g. acme/api-core"
+                className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-primary text-sm transition-all"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs text-zinc-500 font-medium">Branch</label>
+              <input 
+                type="text" 
+                value={githubBranch}
+                onChange={e => setGithubBranch(e.target.value)}
+                placeholder="main"
+                className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-primary text-sm transition-all"
+              />
+            </div>
+          </div>
+          
+          <div className="space-y-2">
+            <label className="text-xs text-zinc-500 font-medium">Access Token / PAT</label>
+            <input 
+              type="password" 
+              value={githubToken}
+              onChange={e => setGithubToken(e.target.value)}
+              placeholder="ghp_xxxxxxxxxxxx"
+              className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-primary text-sm transition-all"
+            />
+          </div>
         </div>
 
         <div className="pt-6 border-t border-border flex justify-end gap-4">

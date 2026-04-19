@@ -443,6 +443,7 @@ export default function ProjectDetail() {
                       {isUpdating ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save Settings"}
                     </button>
                   </div>
+                </form>
               </div>
 
               <div className="space-y-4 pt-8 border-t border-border">

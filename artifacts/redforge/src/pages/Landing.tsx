@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import UnicornScene from "unicornstudio-react";
 import BorderGlow from "@/components/BorderGlow/BorderGlow";
+import MagneticTextFooter from "@/components/landing/MagneticTextFooter";
 
 class DitherBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
   state = { failed: false };
@@ -1024,6 +1025,9 @@ export default function Landing() {
           </div>
         </div>
       </footer>
+
+      {/* ── Magnetic Brand Reveal ── */}
+      <MagneticTextFooter />
     </div>
   );
 }

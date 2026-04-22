@@ -24,6 +24,7 @@ import { enrichWithRemediation }  from "./modules/remediationEngine.js";
 import { enrichWithCompliance }   from "./modules/complianceMapping.js";
 import { enrichCVEs, attachCvesToFinding } from "./modules/cveEnrichment.js";
 import { computeScanDiff }        from "./modules/scanDiff.js";
+import { reopenResurfacedFindings } from "../autopilot.js";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const APP_URL = process.env.REPLIT_DEV_DOMAIN
@@ -644,6 +645,9 @@ If none, return [].`;
       riskScore,
     }).where(eq(scansTable.id, scanId));
 
+    // Re-open regressions signal: previously FIXED findings that resurfaced.
+    const resurfacedCount = await reopenResurfacedFindings(scanId, scan.projectId).catch(() => 0);
+
     // ── Slack Notifications ──────────────────────────────────────────────────
     const [project] = await db.select().from(projectsTable).where(eq(projectsTable.id, scan.projectId)).limit(1);
     if (project) {
@@ -665,6 +669,17 @@ If none, return [].`;
           body:        `Found ${totalFindings} issue${totalFindings !== 1 ? "s" : ""} (${criticalCount} critical, ${highCount} high). Risk score: ${riskScore.toFixed(1)}/10`,
           link:        `/scans/${scanId}`,
         }).catch(() => {});
+
+        if (scanDiff) {
+          createNotification({
+            userId: member.userId,
+            workspaceId: project.workspaceId,
+            type: "info",
+            title: `📈 Continuous drift update — ${project.name}`,
+            body: `${scanDiff.newFindings.length} new · ${scanDiff.resolvedFindings.length} resolved${resurfacedCount > 0 ? ` · ${resurfacedCount} resurfaced` : ""}`,
+            link: `/scans/${scanId}`,
+          }).catch(() => {});
+        }
 
         // Per-critical finding urgent notification
         const criticalFindings = insertedFindings.filter(f => f.severity === "CRITICAL");

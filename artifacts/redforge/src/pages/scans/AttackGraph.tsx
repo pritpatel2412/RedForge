@@ -118,16 +118,31 @@ function buildLayout(gnodes: GNode[], gedges: GEdge[]): { nodes: any[]; edges: a
     });
   });
 
-  const rfEdges: any[] = gedges.map((e, idx) => {
-    // Determine which chain the edge belongs to for coloring
-    const connectedChain = gnodes.find(n => n.id === e.source || n.id === e.target);
-    const isFromAttacker = e.source === "attacker";
-    const isToTarget     = gnodes.find(n => n.id === e.target)?.type === "target";
+  const severityRank: Record<string, number> = { CRITICAL: 4, HIGH: 3, MEDIUM: 2, LOW: 1 };
+  const nodeById = new Map(gnodes.map((n) => [n.id, n]));
 
-    // Critical path (attacker → vuln → target) = bright red; vuln→vuln = dimmer red
-    const edgeColor   = isFromAttacker ? "#ef4444" : isToTarget ? "#ef4444" : "#dc2626";
-    const glowColor   = isFromAttacker ? "rgba(239,68,68,0.5)" : "rgba(220,38,38,0.35)";
-    const strokeWidth = isFromAttacker || isToTarget ? 2.5 : 2;
+  const rfEdges: any[] = gedges.map((e) => {
+    const sourceNode = nodeById.get(e.source);
+    const targetNode = nodeById.get(e.target);
+    const isFromAttacker = e.source === "attacker";
+    const isToTarget = targetNode?.type === "target";
+    const srcSev = sourceNode?.severity || "LOW";
+    const tgtSev = targetNode?.severity || "LOW";
+    const edgeSev = (severityRank[srcSev] || 0) >= (severityRank[tgtSev] || 0) ? srcSev : tgtSev;
+
+    // Critical path (attacker → vuln → target) = bright neon red.
+    const isCriticalPath = isFromAttacker || isToTarget;
+    const edgePalette: Record<string, { color: string; glow: string; className: string }> = {
+      CRITICAL: { color: "#ff3b3b", glow: "rgba(255,59,59,0.75)", className: "rf-edge-critical" },
+      HIGH: { color: "#ff6a3d", glow: "rgba(255,106,61,0.65)", className: "rf-edge-high" },
+      MEDIUM: { color: "#f5c242", glow: "rgba(245,194,66,0.55)", className: "rf-edge-medium" },
+      LOW: { color: "#4ade80", glow: "rgba(74,222,128,0.45)", className: "rf-edge-low" },
+    };
+    const palette = edgePalette[edgeSev] || edgePalette.LOW;
+    const edgeColor = isCriticalPath ? edgePalette.CRITICAL.color : palette.color;
+    const glowColor = isCriticalPath ? edgePalette.CRITICAL.glow : palette.glow;
+    const edgeClass = isCriticalPath ? edgePalette.CRITICAL.className : palette.className;
+    const strokeWidth = isCriticalPath ? 2.8 : 2.2;
 
     return {
       id: e.id,
@@ -135,7 +150,8 @@ function buildLayout(gnodes: GNode[], gedges: GEdge[]): { nodes: any[]; edges: a
       target: e.target,
       label: e.label,
       type: "bezier",
-      animated: false,           // We use CSS animation instead for glow
+      className: edgeClass,
+      animated: true,
       markerEnd: {
         type: MarkerType.ArrowClosed,
         color: edgeColor,
@@ -145,13 +161,11 @@ function buildLayout(gnodes: GNode[], gedges: GEdge[]): { nodes: any[]; edges: a
       style: {
         stroke: edgeColor,
         strokeWidth,
-        filter: `drop-shadow(0 0 4px ${glowColor}) drop-shadow(0 0 8px ${glowColor})`,
-        strokeDasharray: isFromAttacker ? "8 4" : "none",
-        animation: isFromAttacker
-          ? `redforge-dash 1.2s linear infinite`
-          : undefined,
+        strokeLinecap: "round",
+        filter: `drop-shadow(0 0 5px ${glowColor}) drop-shadow(0 0 11px ${glowColor})`,
+        strokeDasharray: isCriticalPath ? "10 7" : "8 9",
       },
-      labelStyle: { fill: "#fca5a5", fontSize: 10, fontWeight: 700 },
+      labelStyle: { fill: "#fecaca", fontSize: 10, fontWeight: 700 },
       labelBgStyle: { fill: "#0d0208", fillOpacity: 0.92 },
       labelBgPadding: [8, 4] as [number, number],
       labelBgBorderRadius: 6,
@@ -174,6 +188,7 @@ export default function AttackGraph() {
   const [streamLog, setStreamLog]         = useState<string[]>([]);
   const [nimOutput, setNimOutput]         = useState("");
   const [showDlMenu, setShowDlMenu]       = useState(false);
+  const [cyberMode, setCyberMode]         = useState(true);
   const logRef    = useRef<HTMLDivElement>(null);
   const evtSource = useRef<EventSource|null>(null);
   const dlMenuRef = useRef<HTMLDivElement>(null);
@@ -541,6 +556,42 @@ export default function AttackGraph() {
 
   return (
     <div className="flex flex-col -mx-5 md:-mx-7 lg:-mx-8 -my-5 md:-my-7 lg:-my-8 animate-in fade-in duration-500" style={{ height:"calc(100vh - 56px)" }}>
+      <style>{`
+        @keyframes redforge-edge-flow {
+          to { stroke-dashoffset: -34; }
+        }
+        @keyframes redforge-edge-pulse {
+          0%, 100% { opacity: .78; }
+          50% { opacity: 1; }
+        }
+        .attack-flow-canvas.cyber-on .react-flow__edge.rf-edge-critical .react-flow__edge-path {
+          animation: redforge-edge-flow 1.1s linear infinite, redforge-edge-pulse 2.3s ease-in-out infinite;
+        }
+        .attack-flow-canvas.cyber-on .react-flow__edge.rf-edge-high .react-flow__edge-path {
+          animation: redforge-edge-flow 1.5s linear infinite, redforge-edge-pulse 2.8s ease-in-out infinite;
+          opacity: .9;
+        }
+        .attack-flow-canvas.cyber-on .react-flow__edge.rf-edge-medium .react-flow__edge-path {
+          animation: redforge-edge-flow 1.9s linear infinite, redforge-edge-pulse 3.3s ease-in-out infinite;
+          opacity: .86;
+        }
+        .attack-flow-canvas.cyber-on .react-flow__edge.rf-edge-low .react-flow__edge-path {
+          animation: redforge-edge-flow 2.4s linear infinite, redforge-edge-pulse 3.8s ease-in-out infinite;
+          opacity: .82;
+        }
+        .attack-flow-canvas.cyber-on .react-flow__edge-text {
+          filter: drop-shadow(0 0 8px rgba(255, 59, 59, .25));
+        }
+        .attack-flow-canvas.cyber-off .react-flow__edge .react-flow__edge-path {
+          animation: none !important;
+          stroke-dasharray: none !important;
+          filter: none !important;
+          opacity: .9 !important;
+        }
+        .attack-flow-canvas.cyber-off .react-flow__edge-text {
+          filter: none !important;
+        }
+      `}</style>
 
       {/* ── Top header bar ── */}
       <div className="flex items-center justify-between px-5 py-3 border-b border-border flex-shrink-0" style={{ background:"oklch(6% 0 0 / 0.9)", backdropFilter:"blur(12px)" }}>
@@ -565,6 +616,15 @@ export default function AttackGraph() {
         </div>
 
         <div className="flex items-center gap-2 flex-shrink-0">
+          {isComplete && (
+            <button
+              onClick={() => setCyberMode((p) => !p)}
+              className="flex items-center gap-1.5 text-zinc-300 hover:text-white text-xs font-semibold px-3 py-2 rounded-xl border border-border hover:border-violet-500/50 hover:bg-violet-500/10 transition-all"
+            >
+              <Activity className="w-3.5 h-3.5" />
+              {cyberMode ? "Cyber" : "Minimal"}
+            </button>
+          )}
           {isComplete && (
             <button onClick={handleReset} className="flex items-center gap-1.5 text-zinc-500 hover:text-zinc-300 text-xs font-medium px-3 py-1.5 rounded-lg border border-border hover:border-zinc-600 transition-all">
               <RotateCcw className="w-3 h-3" /> Reset
@@ -645,11 +705,19 @@ export default function AttackGraph() {
 
           {/* Center: React Flow */}
           <div className="flex-1 relative" style={{ background:"#06060f" }}>
+            <div
+              className="absolute inset-0 pointer-events-none"
+              style={{
+                background:
+                  "radial-gradient(ellipse at 28% 38%, rgba(239,68,68,.10) 0%, rgba(239,68,68,0) 52%), radial-gradient(ellipse at 62% 55%, rgba(220,38,38,.08) 0%, rgba(220,38,38,0) 58%)",
+              }}
+            />
             <ReactFlow nodes={nodes} edges={edges}
               onNodesChange={onNodesChange} onEdgesChange={onEdgesChange}
               onNodeClick={onNodeClick} nodeTypes={nodeTypes}
               fitView fitViewOptions={{ padding:0.3 }}
               proOptions={{ hideAttribution: true }}
+              className={`attack-flow-canvas ${cyberMode ? "cyber-on" : "cyber-off"}`}
               minZoom={0.15} maxZoom={2.5}>
               <Background variant={BackgroundVariant.Dots} gap={28} size={1} color="#111122" />
               <Controls showInteractive={false} style={{ bottom:16, left:16 }} />
@@ -661,8 +729,9 @@ export default function AttackGraph() {
             <div className="absolute top-4 right-4 border border-border rounded-xl p-3 text-xs backdrop-blur-sm" style={{ background:"oklch(8% 0 0 / 0.85)" }}>
               {[
                 { color:"#ef4444", label:"Attacker" },
-                { color:"#f97316", label:"High/Critical Vuln" },
+                { color:"#f97316", label:"High Vuln" },
                 { color:"#eab308", label:"Medium Vuln" },
+                { color:"#22c55e", label:"Low Vuln" },
                 { color:"#8b5cf6", label:"Compromised Target" },
               ].map(({ color, label }) => (
                 <div key={label} className="flex items-center gap-2 mb-1.5 last:mb-0">
@@ -670,6 +739,12 @@ export default function AttackGraph() {
                   <span className="text-zinc-400">{label}</span>
                 </div>
               ))}
+              {cyberMode && (
+                <div className="mt-2 pt-2 border-t border-border/70 flex items-center gap-2">
+                  <div className="w-8 h-0.5 rounded-full bg-red-400 shadow-[0_0_8px_rgba(248,113,113,0.8)] animate-pulse" />
+                  <span className="text-zinc-400 text-[11px]">Animated links = exploit flow path</span>
+                </div>
+              )}
             </div>
 
             {/* Summary bar */}

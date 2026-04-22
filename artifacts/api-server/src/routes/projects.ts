@@ -4,6 +4,7 @@ import { eq, desc, and, sql } from "drizzle-orm";
 import { requireAuth } from "../lib/auth.js";
 import { runRealScan } from "../lib/scanner/index.js";
 import { isAtLeastPlan } from "../lib/plan.js";
+import { getAutopilotConfig, queueContinuousScan, upsertAutopilotConfig } from "../lib/autopilot.js";
 
 const router = Router();
 
@@ -261,14 +262,116 @@ router.post("/:id/scan", requireAuth, async (req, res) => {
       scanMode: resolvedMode,
     }).returning();
 
-    // Run the real security scanner in the background
-    runRealScan(scan.id, project.targetUrl, resolvedMode as any).catch(err => {
-      console.error("Scanner error:", err);
-    });
+    // CONTINUOUS mode is queued and executed by the autopilot worker.
+    if (resolvedMode !== "CONTINUOUS") {
+      runRealScan(scan.id, project.targetUrl, resolvedMode as any).catch(err => {
+        console.error("Scanner error:", err);
+      });
+    }
 
     res.status(201).json(scan);
   } catch (err) {
     req.log.error(err, "Error triggering scan");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.get("/:id/autopilot", requireAuth, async (req, res) => {
+  try {
+    const workspace = (req as any).workspace;
+    const id = req.params.id;
+    const [project] = await db.select().from(projectsTable)
+      .where(and(eq(projectsTable.id, id as any), eq(projectsTable.workspaceId, workspace.id as any)))
+      .limit(1);
+    if (!project) {
+      res.status(404).json({ error: "Project not found" });
+      return;
+    }
+
+    const cfg = await getAutopilotConfig(id);
+    res.json(cfg || {
+      projectId: id,
+      enabled: false,
+      frequency: "DAILY",
+      scanMode: "PASSIVE",
+      onDeploy: false,
+      dayOfWeek: 1,
+      hourUtc: 2,
+      nextRunAt: null,
+      lastRunAt: null,
+      lastScanId: null,
+    });
+  } catch (err) {
+    req.log.error(err, "Error loading autopilot config");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.put("/:id/autopilot", requireAuth, async (req, res) => {
+  try {
+    const workspace = (req as any).workspace;
+    const id = req.params.id;
+    const [project] = await db.select().from(projectsTable)
+      .where(and(eq(projectsTable.id, id as any), eq(projectsTable.workspaceId, workspace.id as any)))
+      .limit(1);
+    if (!project) {
+      res.status(404).json({ error: "Project not found" });
+      return;
+    }
+
+    const enabled = Boolean(req.body?.enabled);
+    const frequency = (req.body?.frequency === "WEEKLY" ? "WEEKLY" : "DAILY") as "DAILY" | "WEEKLY";
+    const scanMode = (req.body?.scanMode === "ACTIVE" ? "ACTIVE" : "PASSIVE") as "PASSIVE" | "ACTIVE";
+    const onDeploy = Boolean(req.body?.onDeploy);
+    const hourUtc = Number.isFinite(Number(req.body?.hourUtc)) ? Number(req.body?.hourUtc) : 2;
+    const dayOfWeek = Number.isFinite(Number(req.body?.dayOfWeek)) ? Number(req.body?.dayOfWeek) : 1;
+
+    if (!isAtLeastPlan(workspace.plan, "PRO")) {
+      res.status(403).json({ error: "Continuous autopilot requires PRO plan" });
+      return;
+    }
+
+    const cfg = await upsertAutopilotConfig({
+      projectId: id,
+      workspacePlan: workspace.plan,
+      enabled,
+      frequency,
+      scanMode,
+      onDeploy,
+      hourUtc,
+      dayOfWeek,
+    });
+    res.json(cfg);
+  } catch (err) {
+    req.log.error(err, "Error updating autopilot config");
+    res.status(500).json({ error: err instanceof Error ? err.message : "Internal server error" });
+  }
+});
+
+router.post("/:id/autopilot/run-now", requireAuth, async (req, res) => {
+  try {
+    const workspace = (req as any).workspace;
+    const id = req.params.id;
+    const [project] = await db.select().from(projectsTable)
+      .where(and(eq(projectsTable.id, id as any), eq(projectsTable.workspaceId, workspace.id as any)))
+      .limit(1);
+    if (!project) {
+      res.status(404).json({ error: "Project not found" });
+      return;
+    }
+    if (!isAtLeastPlan(workspace.plan, "PRO")) {
+      res.status(403).json({ error: "Continuous autopilot requires PRO plan" });
+      return;
+    }
+
+    const result = await queueContinuousScan(id);
+    if (!result.queued) {
+      res.status(409).json({ error: result.reason || "Unable to queue scan" });
+      return;
+    }
+    res.status(201).json({ ok: true, queued: true });
+  } catch (err) {
+    req.log.error(err, "Error queueing run-now continuous scan");
     res.status(500).json({ error: "Internal server error" });
   }
 });

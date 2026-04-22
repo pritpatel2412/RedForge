@@ -4,6 +4,7 @@ import { and, desc, eq } from "drizzle-orm";
 import { getWorkspaceIdFromRequest } from "../lib/apiKeyAuth.js";
 import { isAtLeastPlan } from "../lib/plan.js";
 import { workspacesTable } from "@workspace/db";
+import { triggerOnDeployContinuousScan } from "../lib/autopilot.js";
 
 const router = Router();
 
@@ -131,6 +132,49 @@ router.post("/evaluate", async (req, res) => {
     });
   } catch (err) {
     (req as any).log?.error(err, "Error evaluating CI security gate");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.post("/deploy-hook", async (req, res) => {
+  try {
+    const workspaceId = await getWorkspaceIdFromRequest(req as any);
+    if (!workspaceId) {
+      res.status(401).json({ error: "Invalid or missing API key" });
+      return;
+    }
+
+    const { projectId } = req.body || {};
+    if (!projectId) {
+      res.status(400).json({ error: "projectId is required" });
+      return;
+    }
+
+    const [project] = await db.select().from(projectsTable)
+      .where(and(eq(projectsTable.id as any, projectId), eq(projectsTable.workspaceId as any, workspaceId)))
+      .limit(1);
+    if (!project) {
+      res.status(404).json({ error: "Project not found in API key workspace" });
+      return;
+    }
+
+    const [workspace] = await db.select().from(workspacesTable)
+      .where(eq(workspacesTable.id as any, workspaceId))
+      .limit(1) as any;
+    const plan = (workspace?.plan || "FREE") as any;
+    if (!isAtLeastPlan(plan, "PRO")) {
+      res.status(403).json({ error: "Upgrade to PRO to use deploy-triggered continuous scans" });
+      return;
+    }
+
+    const result = await triggerOnDeployContinuousScan(projectId);
+    if (!result.queued) {
+      res.status(202).json({ queued: false, reason: result.reason || "No scan queued" });
+      return;
+    }
+    res.status(201).json({ queued: true });
+  } catch (err) {
+    (req as any).log?.error(err, "Error in deploy hook");
     res.status(500).json({ error: "Internal server error" });
   }
 });

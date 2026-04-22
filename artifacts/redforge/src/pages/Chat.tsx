@@ -423,27 +423,76 @@ async function streamChat(
   if (!reader) { onError("No stream"); return; }
   const dec = new TextDecoder();
   let buf = "";
+  let currentEvent = "";
+  let dataLines: string[] = [];
+
+  const dispatchEvent = () => {
+    if (!currentEvent && dataLines.length === 0) return;
+    const payload = dataLines.join("\n");
+
+    if (currentEvent === "done") {
+      onDone();
+      return "done";
+    }
+
+    if (payload) {
+      try {
+        const d = JSON.parse(payload);
+        if (currentEvent === "error" || d?.message) {
+          onError(d?.message || "Streaming error");
+          return "error";
+        }
+        if (d?.text) onChunk(d.text);
+      } catch {
+        // Ignore malformed partial payloads safely.
+      }
+    }
+
+    currentEvent = "";
+    dataLines = [];
+    return "ok";
+  };
+
   while (true) {
     const { done, value } = await reader.read();
     if (done) break;
     buf += dec.decode(value, { stream: true });
-    const lines = buf.split("\n");
-    buf = lines.pop() || "";
-    for (const line of lines) {
-      if (line.startsWith("event: done")) { onDone(); reader.cancel(); return; }
-      if (line.startsWith("event: error")) { 
-        // Try to parse error message from the next data line or current context if possible
-        // but for simplicity we'll just wait for the next loop or handle it here
-        continue; 
+
+    // SSE frames are delimited by a blank line.
+    const frames = buf.split("\n\n");
+    buf = frames.pop() || "";
+
+    for (const frame of frames) {
+      const lines = frame.split("\n");
+      for (const rawLine of lines) {
+        const line = rawLine.trimEnd();
+        if (!line || line.startsWith(":")) continue; // comments/keepalive
+        if (line.startsWith("event:")) {
+          currentEvent = line.slice(6).trim();
+          continue;
+        }
+        if (line.startsWith("data:")) {
+          dataLines.push(line.slice(5).trimStart());
+        }
       }
-      if (line.startsWith("data: ")) {
-        try { 
-          const d = JSON.parse(line.slice(6)); 
-          if (d.message) { onError(d.message); reader.cancel(); return; }
-          if (d.text) onChunk(d.text); 
-        } catch {}
+      const status = dispatchEvent();
+      if (status === "done" || status === "error") {
+        reader.cancel();
+        return;
       }
     }
+  }
+  // Flush any trailing frame without delimiter
+  if (buf.trim()) {
+    const lines = buf.split("\n");
+    for (const rawLine of lines) {
+      const line = rawLine.trimEnd();
+      if (!line || line.startsWith(":")) continue;
+      if (line.startsWith("event:")) currentEvent = line.slice(6).trim();
+      if (line.startsWith("data:")) dataLines.push(line.slice(5).trimStart());
+    }
+    const status = dispatchEvent();
+    if (status === "error") return;
   }
   onDone();
 }
@@ -865,14 +914,29 @@ export default function Chat() {
     }
 
     let full = "";
+    let pending = "";
+    let rafScheduled = false;
+
+    const flushPending = () => {
+      if (!pending) return;
+      full += pending;
+      pending = "";
+      setMessages(prev => prev.map(m => m.id === aiId ? { ...m, content: full } : m));
+      rafScheduled = false;
+    };
+
     await streamChat(
       [...historyMessages.filter(m => m.id !== "welcome"), userMsg],
       (chunk) => {
         if (abortRef.current) return;
-        full += chunk;
-        setMessages(prev => prev.map(m => m.id === aiId ? { ...m, content: full } : m));
+        pending += chunk;
+        if (!rafScheduled) {
+          rafScheduled = true;
+          requestAnimationFrame(flushPending);
+        }
       },
       async () => {
+        flushPending();
         setMessages(prev => prev.map(m => m.id === aiId ? { ...m, streaming: false } : m));
         setIsStreaming(false);
         if (cid && full) {

@@ -816,8 +816,8 @@ export default function Landing() {
                   variants={fadeUp}
                   whileHover={{ y: isPrimary ? -2 : -4, transition: { duration: 0.2 } }}
                   className={`relative flex flex-col rounded-2xl border p-8 transition-all duration-300 ${isPrimary
-                      ? "bg-primary/5 border-primary/40 shadow-[0_0_40px_hsl(348_83%_50%_/_0.12)] ring-1 ring-primary/20"
-                      : "bg-card border-border hover:border-white/20"
+                    ? "bg-primary/5 border-primary/40 shadow-[0_0_40px_hsl(348_83%_50%_/_0.12)] ring-1 ring-primary/20"
+                    : "bg-card border-border hover:border-white/20"
                     }`}
                 >
                   {plan.badge && (
@@ -872,8 +872,8 @@ export default function Landing() {
                     <Link
                       href={plan.ctaLink as string}
                       className={`w-full py-3 rounded-xl font-semibold text-sm transition-all text-center mb-8 block ${isPrimary
-                          ? "bg-primary text-white hover:bg-primary/90 glow-red-sm hover:glow-red"
-                          : "bg-white/5 border border-white/15 text-white hover:bg-white/10 hover:border-white/25"
+                        ? "bg-primary text-white hover:bg-primary/90 glow-red-sm hover:glow-red"
+                        : "bg-white/5 border border-white/15 text-white hover:bg-white/10 hover:border-white/25"
                         }`}
                     >
                       {plan.cta}

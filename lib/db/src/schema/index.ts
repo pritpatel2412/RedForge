@@ -7,3 +7,4 @@ export * from "./attack-graph";
 export * from "./coupons";
 export * from "./activity";
 export * from "./notifications";
+export * from "./scan-autopilot";

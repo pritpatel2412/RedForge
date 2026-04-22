@@ -8,6 +8,7 @@ import pinoHttp from "pino-http";
 import compression from "compression";
 import router from "./routes/index.js";
 import { logger } from "./lib/logger.js";
+import { startContinuousAutopilot } from "./lib/autopilot.js";
 
 /** When the Vite build output is present next to this package, serve it so deep links (/dashboard, /status) work behind a single Node process. */
 function resolveSpaRoot(): string | null {
@@ -18,6 +19,7 @@ function resolveSpaRoot(): string | null {
 }
 
 const app = express();
+startContinuousAutopilot();
 
 // ── Compression — skip SSE, lower threshold for faster small responses ─────
 app.use(compression({

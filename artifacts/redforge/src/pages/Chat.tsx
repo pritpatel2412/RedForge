@@ -914,30 +914,34 @@ export default function Chat() {
     }
 
     let full = "";
-    let pending = "";
     let rafScheduled = false;
+    let pendingUpdates = false;
 
-    const flushPending = () => {
-      if (!pending) return;
-      full += pending;
-      pending = "";
+    const flushToUI = () => {
       setMessages(prev => prev.map(m => m.id === aiId ? { ...m, content: full } : m));
       rafScheduled = false;
+      if (pendingUpdates) {
+        pendingUpdates = false;
+        rafScheduled = true;
+        requestAnimationFrame(flushToUI);
+      }
     };
 
     await streamChat(
       [...historyMessages.filter(m => m.id !== "welcome"), userMsg],
       (chunk) => {
         if (abortRef.current) return;
-        pending += chunk;
+        full += chunk;
+        
         if (!rafScheduled) {
           rafScheduled = true;
-          requestAnimationFrame(flushPending);
+          requestAnimationFrame(flushToUI);
+        } else {
+          pendingUpdates = true;
         }
       },
       async () => {
-        flushPending();
-        setMessages(prev => prev.map(m => m.id === aiId ? { ...m, streaming: false } : m));
+        setMessages(prev => prev.map(m => m.id === aiId ? { ...m, content: full, streaming: false } : m));
         setIsStreaming(false);
         if (cid && full) {
           await api.post(`/conversations/${cid}/messages`, {

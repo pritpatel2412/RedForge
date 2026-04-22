@@ -112,6 +112,24 @@ export default function Billing() {
         animate="visible"
         className="space-y-6"
       >
+        {/* Trial Expired Alert */}
+        {window.location.search.includes("trial_expired") && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="flex items-start gap-4 p-5 rounded-2xl bg-amber-500/10 border border-amber-500/20 shadow-[0_0_20px_rgba(245,158,11,0.05)]"
+          >
+            <div className="p-2.5 rounded-xl bg-amber-500/20">
+              <Zap className="w-5 h-5 text-amber-500" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-amber-500 uppercase tracking-tight mb-1">Service Restricted: Trial Expired</h3>
+              <p className="text-xs leading-relaxed text-amber-500/80 max-w-lg">
+                Your 14-day free trial has concluded. All functional features including Chat, Scans, and Projects are currently restricted. Upgrade to a Pro plan below to instantly restore full access to the RedForge platform.
+              </p>
+            </div>
+          </motion.div>
+        )}
         {/* Current plan banner */}
         <motion.div
           variants={cardVariants}

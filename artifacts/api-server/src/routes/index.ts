@@ -15,24 +15,27 @@ import adminRouter from "./admin.js";
 import couponsRouter from "./coupons.js";
 import notificationsRouter from "./notifications.js";
 import ciRouter from "./ci.js";
+import { requireActiveSubscription } from "../lib/auth.js";
 
 const router = Router();
 
 router.use(healthRouter);
 router.use("/auth", authRouter);
-router.use("/projects", projectsRouter);
-router.use("/scans", scansRouter);
-router.use("/findings", findingsRouter);
-router.use("/keys", keysRouter);
-router.use("/workspace", workspaceRouter);
-router.use("/dashboard", dashboardRouter);
 router.use("/billing", billingRouter);
 router.use("/webhooks", webhooksRouter);
-router.use("/chat", chatRouter);
-router.use("/attack-graph", attackGraphRouter);
 router.use("/admin", adminRouter);
-router.use("/coupons", couponsRouter);
-router.use("/notifications", notificationsRouter);
-router.use("/ci", ciRouter);
+
+// Functional routes requiring active trial or paid plan
+router.use("/projects", requireActiveSubscription, projectsRouter);
+router.use("/scans", requireActiveSubscription, scansRouter);
+router.use("/findings", requireActiveSubscription, findingsRouter);
+router.use("/keys", requireActiveSubscription, keysRouter);
+router.use("/workspace", requireActiveSubscription, workspaceRouter);
+router.use("/dashboard", requireActiveSubscription, dashboardRouter);
+router.use("/chat", requireActiveSubscription, chatRouter);
+router.use("/attack-graph", requireActiveSubscription, attackGraphRouter);
+router.use("/coupons", requireActiveSubscription, couponsRouter);
+router.use("/notifications", requireActiveSubscription, notificationsRouter);
+router.use("/ci", requireActiveSubscription, ciRouter);
 
 export default router;

@@ -458,9 +458,10 @@ router.post("/", requireAuth, async (req, res) => {
   res.setHeader("X-Accel-Buffering", "no");
   res.flushHeaders();
 
-  // Send an immediate keep-alive ping to ensure the response starts immediately
-  // and prevent proxy/LB timeouts while the model prepares the first token.
-  res.write(': keep-alive\n\n');
+  // Send an immediate keep-alive ping and a small padding to flush browser buffers
+  res.write(': keep-alive\n');
+  res.write(': ' + ' '.repeat(1024) + '\n\n');
+  if (typeof (res as any).flush === "function") (res as any).flush();
 
   const primaryModel = PRIMARY_MODEL;
   const fallbackModel = FALLBACK_MODEL;
@@ -516,7 +517,15 @@ router.post("/", requireAuth, async (req, res) => {
             const parsed = JSON.parse(rawData);
             const text = parsed.choices?.[0]?.delta?.content;
             if (text) {
-              res.write(`data: ${JSON.stringify({ text })}\n\n`);
+              // To ensure "token-by-token" look, if we get a large chunk, we send it character by character
+              // with a tiny delay if needed, but usually just splitting the writes is enough to trigger 
+              // the stream reader on the frontend.
+              for (const char of text) {
+                res.write(`data: ${JSON.stringify({ text: char })}\n\n`);
+                if (typeof (res as any).flush === "function") (res as any).flush();
+                // Tiny break to ensure separate network packets for the "token-by-token" feel
+                await new Promise(resolve => setTimeout(resolve, 1));
+              }
             }
             if (parsed.choices?.[0]?.finish_reason === "stop") return true;
           } catch (e) {

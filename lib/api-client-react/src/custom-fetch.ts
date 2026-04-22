@@ -361,6 +361,15 @@ export async function customFetch<T = unknown>(
 
   if (!response.ok) {
     const errorData = await parseErrorBody(response, method);
+    
+    // Global Trial Enforcement: If the trial is expired, redirect to billing.
+    // We skip the redirect if already on the billing page to avoid infinite loops.
+    if (response.status === 402 && (errorData as any)?.error === "TRIAL_EXPIRED") {
+      if (typeof window !== "undefined" && !window.location.pathname.includes("/settings/billing")) {
+        window.location.href = "/settings/billing?error=trial_expired";
+      }
+    }
+    
     throw new ApiError(response, errorData, requestInfo);
   }
 

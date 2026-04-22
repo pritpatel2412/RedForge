@@ -6,9 +6,10 @@ if (!process.env.DATABASE_URL) {
 }
 
 export default defineConfig({
-  schema: "./src/schema/*.ts",
+  schema: "./src/schema/index.ts",
   dialect: "postgresql",
   dbCredentials: {
     url: normalizeDatabaseUrl(process.env.DATABASE_URL),
   },
+  tablesFilter: ["!pg_stat_statements", "!pg_stat_statements_info"],
 });

@@ -65,4 +65,42 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
   (req as any).workspace = result.workspace;
   next();
 }
+
+/**
+ * Ensures the user has an active subscription or is within a free trial.
+ * Blocks access to functional features if trial is expired and no paid plan is active.
+ */
+export async function requireActiveSubscription(req: Request, res: Response, next: NextFunction) {
+  const result = await getUserFromRequest(req);
+  if (!result || !result.workspace) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+
+  const { workspace, user } = result;
+
+  // Admin users bypass trial/plan checks for support purposes
+  if (user.role === "admin") {
+    (req as any).user = user;
+    (req as any).workspace = workspace;
+    return next();
+  }
+
+  // If the plan is FREE, verify the trial hasn't expired
+  if (workspace.plan === "FREE") {
+    const trialEnd = workspace.trialEndsAt ? new Date(workspace.trialEndsAt) : null;
+    if (trialEnd && trialEnd < new Date()) {
+      res.status(402).json({
+        error: "TRIAL_EXPIRED",
+        message: "Your free trial has expired. Please upgrade your plan to continue using RedForge services.",
+        trialEndsAt: workspace.trialEndsAt
+      });
+      return;
+    }
+  }
+
+  (req as any).user = user;
+  (req as any).workspace = workspace;
+  next();
+}
 // ─────────────────────────────────────────────────────────────────────────────

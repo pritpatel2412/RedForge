@@ -288,7 +288,7 @@ router.get("/:id/autopilot", requireAuth, async (req, res) => {
       return;
     }
 
-    const cfg = await getAutopilotConfig(id);
+    const cfg = await getAutopilotConfig(String(id));
     res.json(cfg || {
       projectId: id,
       enabled: false,
@@ -332,7 +332,7 @@ router.put("/:id/autopilot", requireAuth, async (req, res) => {
     }
 
     const cfg = await upsertAutopilotConfig({
-      projectId: id,
+      projectId: String(id),
       workspacePlan: workspace.plan,
       enabled,
       frequency,
@@ -364,7 +364,7 @@ router.post("/:id/autopilot/run-now", requireAuth, async (req, res) => {
       return;
     }
 
-    const result = await queueContinuousScan(id);
+    const result = await queueContinuousScan(String(id));
     if (!result.queued) {
       res.status(409).json({ error: result.reason || "Unable to queue scan" });
       return;

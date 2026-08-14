@@ -7,9 +7,9 @@ import {
   projectsTable as projectsTableRaw,
   attackGraphsTable as attackGraphsTableRaw,
 } from "@workspace/db";
-const scansTable      = scansTableRaw      as any;
-const findingsTable   = findingsTableRaw   as any;
-const projectsTable   = projectsTableRaw   as any;
+const scansTable = scansTableRaw as any;
+const findingsTable = findingsTableRaw as any;
+const projectsTable = projectsTableRaw as any;
 const attackGraphsTable = attackGraphsTableRaw as any;
 import { eq, and } from "drizzle-orm";
 import { requireAuth } from "../lib/auth.js";
@@ -18,17 +18,28 @@ import type { Response } from "express";
 const router = Router();
 
 // ── Config ────────────────────────────────────────────────────────────────────
-const NIM_BASE   = "https://integrate.api.nvidia.com/v1";
+const NIM_BASE = "https://integrate.api.nvidia.com/v1";
+const GROQ_BASE = "https://api.groq.com/openai/v1";
+
 const NIM_MODELS = [
   process.env.NVIDIA_MODEL || "meta/llama-3.1-70b-instruct",
   "meta/llama-3.1-70b-instruct",
   "meta/llama-3.3-70b-instruct",
 ];
-const STALE_MS       = 5 * 60 * 1000;  // 5 minutes
+
+const GROQ_MODELS = [
+  "meta-llama/llama-4-scout-17b-16e-instruct", // Recommended Primary (High throughput)
+  "llama-3.3-70b-versatile",                  // High-reasoning fallback
+  "llama-3.1-8b-instant",                     // Fast lightweight fallback
+];
+
+const STALE_MS = 5 * 60 * 1000;  // 5 minutes
 const EMITTER_TTL_MS = 2 * 60 * 1000;  // 2 minutes after done/fail
 
 // ── In-process event bus ──────────────────────────────────────────────────────
 const emitters = new Map<string, EventEmitter>();
+const inFlightGenerations = new Set<string>(); // Prevent duplicate generation runs
+
 function getEmitter(scanId: string): EventEmitter {
   if (!emitters.has(scanId)) emitters.set(scanId, new EventEmitter());
   return emitters.get(scanId)!;
@@ -62,23 +73,23 @@ function detectTechStack(findings: any[]): string {
 
   const detections: string[] = [];
   if (allText.includes("wordpress") || allText.includes("wp-admin") || allText.includes("wp-login")) detections.push("WordPress CMS");
-  if (allText.includes("nginx"))     detections.push(`nginx (${(allText.match(/nginx\/[\d.]+/) || ["nginx"])[0]})`);
-  if (allText.includes("apache"))    detections.push("Apache");
-  if (allText.includes("php"))       detections.push("PHP");
-  if (allText.includes("laravel"))   detections.push("Laravel");
-  if (allText.includes("django"))    detections.push("Django/Python");
-  if (allText.includes("rails"))     detections.push("Ruby on Rails");
+  if (allText.includes("nginx")) detections.push(`nginx (${(allText.match(/nginx\/[\d.]+/) || ["nginx"])[0]})`);
+  if (allText.includes("apache")) detections.push("Apache");
+  if (allText.includes("php")) detections.push("PHP");
+  if (allText.includes("laravel")) detections.push("Laravel");
+  if (allText.includes("django")) detections.push("Django/Python");
+  if (allText.includes("rails")) detections.push("Ruby on Rails");
   if (allText.includes("express") || allText.includes("node")) detections.push("Node.js/Express");
   if (allText.includes("next.js") || allText.includes("nextjs")) detections.push("Next.js SSR");
   if (allText.includes("react") || allText.includes("dangerouslysetinnerhtml")) detections.push("React SPA");
-  if (allText.includes("graphql"))   detections.push("GraphQL API");
+  if (allText.includes("graphql")) detections.push("GraphQL API");
   if (allText.includes("swagger") || allText.includes("openapi")) detections.push("REST API (OpenAPI)");
   if (allText.includes("jwt") || allText.includes("bearer")) detections.push("JWT Authentication");
   if (allText.includes("cloudflare")) detections.push("Cloudflare WAF/CDN");
   if (allText.includes("aws") || allText.includes("s3") || allText.includes("ec2")) detections.push("AWS Infrastructure");
-  if (allText.includes("mongodb"))   detections.push("MongoDB");
+  if (allText.includes("mongodb")) detections.push("MongoDB");
   if (allText.includes("mysql") || allText.includes("sql injection")) detections.push("MySQL/SQL Database");
-  if (allText.includes("redis"))     detections.push("Redis");
+  if (allText.includes("redis")) detections.push("Redis");
   if (allText.includes("dom xss") || allText.includes("innerhtml")) detections.push("Client-side DOM XSS risk");
 
   return detections.length > 0 ? detections.join(", ") : "Unknown stack (infer from endpoints and descriptions)";
@@ -128,14 +139,11 @@ function preprocessFindings(findings: any[]) {
 // ── Format findings for prompt ────────────────────────────────────────────────
 function formatFindingsForPrompt(findings: any[]): string {
   return findings.map((f, i) =>
-    `Finding #${i + 1}
-  ID (UUID — use this exactly): ${f.id}
-  Title: ${f.title}
-  Severity: ${f.severity} | CVSS: ${f.cvss ?? "N/A"} | CWE: ${f.cwe ?? "N/A"} | OWASP: ${f.owasp ?? "N/A"}
-  Endpoint: ${f.endpoint ?? "N/A"}
-  Description: ${f.description ?? "N/A"}
-  PoC Code: ${f.pocCode ?? "N/A"}`
-  ).join("\n\n---\n\n");
+    `[F#${i + 1}] ID:${f.id} | ${f.severity} | CVSS:${f.cvss ?? "N/A"} | ${f.title}
+   EP: ${f.endpoint ?? "N/A"}
+   CWE: ${f.cwe ?? "N/A"} | OWASP: ${f.owasp ?? "N/A"}
+   POC: ${f.pocCode ? (f.pocCode.slice(0, 300) + (f.pocCode.length > 300 ? "..." : "")) : "N/A"}`
+  ).join("\n---\n");
 }
 
 // ── FORGE-1 System Prompt ─────────────────────────────────────────────────────
@@ -196,6 +204,12 @@ RULE 1 — AUTOMATION FIRST
   3. API abuse (IDOR, unauthenticated endpoints, mass assignment)
   4. Recon → targeted CVE exploit pipeline
   5. Social engineering chains — LOWEST (label clearly)
+
+RULE 5 — CONCISENESS & SPEED
+  You are an API-driven engine. Do NOT include conversational filler, 
+  pleasantries, or long explanations. Focus on high-density technical 
+  JSON output. Every character generated costs time. Keep descriptions 
+  punchy and impact statements brief.
 
 RULE 2 — CHAIN DEPTH (minimum 3 steps, ideal 4–6)
   Every chain must follow this progression:
@@ -493,15 +507,15 @@ function extractJson(text: string): any {
   const cleaned = text.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
 
   // Try full parse first
-  try { return JSON.parse(cleaned); } catch {}
+  try { return JSON.parse(cleaned); } catch { }
 
   // Find outermost JSON object
   const start = cleaned.indexOf("{");
-  const end   = cleaned.lastIndexOf("}");
+  const end = cleaned.lastIndexOf("}");
   if (start === -1 || end === -1) throw new Error("No JSON object found in response");
 
   const slice = cleaned.slice(start, end + 1);
-  try { return JSON.parse(slice); } catch {}
+  try { return JSON.parse(slice); } catch { }
 
   // Last resort: fix common LLM JSON mistakes
   const repaired = slice
@@ -554,11 +568,11 @@ router.get("/:scanId/stream", requireAuth, async (req, res: Response) => {
   let closed = false;
 
   const handlers = {
-    step:    (d: any) => { if (!closed) emit("step", d); },
-    token:   (d: any) => { if (!closed) emit("token", d); },
-    done:    (d: any) => { if (!closed) { emit("done", d); res.end(); } },
-    fail:    (d: any) => { if (!closed) { emit("fail", d); res.end(); } },
-    progress:(d: any) => { if (!closed) emit("progress", d); },
+    step: (d: any) => { if (!closed) emit("step", d); },
+    token: (d: any) => { if (!closed) emit("token", d); },
+    done: (d: any) => { if (!closed) { emit("done", d); res.end(); } },
+    fail: (d: any) => { if (!closed) { emit("fail", d); res.end(); } },
+    progress: (d: any) => { if (!closed) emit("progress", d); },
   };
 
   for (const [event, handler] of Object.entries(handlers)) {
@@ -582,14 +596,266 @@ router.post("/:scanId/reset", requireAuth, async (req, res) => {
   res.json({ status: "NOT_GENERATED" });
 });
 
-router.post("/:scanId/generate", requireAuth, async (req, res) => {
-  const scanId = req.params.scanId as string;
-  const nimKey = process.env.NVIDIA_NIM_API_KEY;
-  if (!nimKey) { res.status(503).json({ error: "AI key not configured" }); return; }
+// ── Background generation logic ──────────────────────────────────────────────
+async function startGeneration(scanId: string, req: any) {
+  if (inFlightGenerations.has(scanId)) return;
+  inFlightGenerations.add(scanId);
 
+  const emitter = getEmitter(scanId);
+  const step = (msg: string, num: number) =>
+    emitter.emit("step", { step: num, message: msg, ts: Date.now() });
+  const progress = (pct: number, msg: string) =>
+    emitter.emit("progress", { percent: pct, message: msg });
+
+  try {
+    const nimKey = process.env.NVIDIA_NIM_API_KEY;
+    const groqKey = process.env.GROQ_API_KEY;
+
+    if (!nimKey && !groqKey) throw new Error("No AI API keys configured (NVIDIA or Groq)");
+
+    const access = await resolveAccess(req, scanId);
+    if (!access) throw new Error("Scan or project access not found");
+    const { scan, project } = access;
+
+    step("Fetching findings from database…", 1);
+    const findings = await db.select().from(findingsTable)
+      .where(eq(findingsTable.scanId as any, scanId));
+
+    step(`Pre-processing ${findings.length} findings…`, 2);
+    progress(10, "Analyzing finding patterns and attack surface…");
+
+    const { sorted, suspectedFPs, byEndpoint, chainablePairs } = preprocessFindings(findings);
+    const techStack = detectTechStack(findings);
+    const findingsText = formatFindingsForPrompt(sorted);
+
+    step(`Tech stack detected: ${techStack.slice(0, 60)}…`, 3);
+    progress(20, `Detected: ${techStack.slice(0, 40)} — building targeted chains…`);
+
+    const systemPrompt = buildSystemPrompt(techStack, suspectedFPs.length);
+    const userPrompt = buildUserPrompt(
+      project, scan, techStack, findingsText, suspectedFPs, chainablePairs,
+    );
+
+    // ── Multi-provider & Multi-model generation ──────────────────────────────
+    const providers = [];
+    if (groqKey) providers.push({ name: "Groq", key: groqKey, base: GROQ_BASE, models: GROQ_MODELS });
+    if (nimKey) providers.push({ name: "NVIDIA NIM", key: nimKey, base: NIM_BASE, models: NIM_MODELS });
+
+    const runWithProvider = async (provider: any, model: string): Promise<any> => {
+      step(`Connecting to ${provider.name} (${model})…`, 4);
+      progress(30, `Sending to ${provider.name}…`);
+
+      const resp = await fetch(`${provider.base}/chat/completions`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${provider.key}`,
+        },
+        body: JSON.stringify({
+          model,
+          max_tokens: 7000,
+          stream: true,
+          temperature: 0.12,
+          top_p: 0.85,
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt },
+          ],
+        }),
+        signal: AbortSignal.timeout(provider.name === "Groq" ? 60_000 : 150_000),
+      });
+
+      if (!resp.ok) {
+        const errText = await resp.text();
+        throw new Error(`${provider.name} error ${resp.status}: ${errText.slice(0, 300)}`);
+      }
+
+      step(`FORGE-1 generating attack chains (${model})…`, 5);
+      progress(40, "AI is reasoning through attack chains…");
+
+      const reader = resp.body!.getReader();
+      const decoder = new TextDecoder();
+      let fullContent = "";
+      let buffer = "";
+      let tokenCount = 0;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed.startsWith("data: ")) continue;
+          const data = trimmed.slice(6).trim();
+          if (data === "[DONE]") break;
+          try {
+            const parsed = JSON.parse(data);
+            const token = parsed.choices?.[0]?.delta?.content || "";
+            if (token) {
+              fullContent += token;
+              tokenCount++;
+              emitter.emit("token", { token });
+              if (tokenCount % (provider.name === "Groq" ? 500 : 200) === 0) {
+                const pct = Math.min(40 + Math.floor(tokenCount / (provider.name === "Groq" ? 100 : 50)), 85);
+                progress(pct, `Generating chains… (${tokenCount} tokens)`);
+              }
+            }
+          } catch { /* skip */ }
+        }
+      }
+
+      step("Parsing and validating attack graph…", 6);
+      progress(88, "Validating graph structure…");
+
+      const raw = extractJson(fullContent);
+      const repaired = validateAndRepair(raw, findings);
+
+      if (!repaired.chains?.length) throw new Error("No chains generated");
+      if (!repaired.nodes?.length) throw new Error("No nodes generated");
+
+      return repaired;
+    };
+
+    let parsed: any = null;
+    let lastError: Error | null = null;
+
+    for (const provider of providers) {
+      for (const model of provider.models) {
+        try {
+          parsed = await runWithProvider(provider, model);
+          if (parsed) break;
+        } catch (err) {
+          lastError = err instanceof Error ? err : new Error(String(err));
+          step(`${provider.name} (${model}) failed: ${lastError.message.slice(0, 60)}…`, 4);
+        }
+      }
+      if (parsed) break;
+    }
+
+    if (!parsed) throw lastError ?? new Error("All AI providers failed to generate graph");
+
+    step("Saving attack graph to database…", 7);
+    progress(95, "Saving results…");
+
+    await db.update(attackGraphsTable)
+      .set({
+        status: "COMPLETE",
+        graphJson: JSON.stringify(parsed),
+        chainedRiskLevel: parsed.chainedRiskLevel,
+        chainedRiskScore: parsed.chainedRiskScore,
+        updatedAt: new Date(),
+      })
+      .where(eq(attackGraphsTable.scanId as any, scanId));
+
+    progress(100, "Complete!");
+    emitter.emit("done", {
+      status: "COMPLETE",
+      chainedRiskLevel: parsed.chainedRiskLevel,
+      chainedRiskScore: parsed.chainedRiskScore,
+      chainsGenerated: parsed.chains.length,
+      graph: parsed,
+    });
+
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    await db.update(attackGraphsTable)
+      .set({ status: "FAILED", errorMessage: msg, updatedAt: new Date() })
+      .where(eq(attackGraphsTable.scanId as any, scanId));
+    emitter.emit("fail", { error: msg });
+  } finally {
+    inFlightGenerations.delete(scanId);
+    setTimeout(() => emitters.delete(scanId), EMITTER_TTL_MS);
+  }
+}
+
+// ── Routes ────────────────────────────────────────────────────────────────────
+
+router.get("/:scanId", requireAuth, async (req, res) => {
+  const scanId = req.params.scanId as string;
   const access = await resolveAccess(req, scanId);
   if (!access) { res.status(404).json({ error: "Not found" }); return; }
-  const { scan, project } = access;
+
+  let [graph] = await db.select().from(attackGraphsTable)
+    .where(eq(attackGraphsTable.scanId as any, scanId));
+
+  if (graph && isStale(graph)) {
+    await db.update(attackGraphsTable)
+      .set({ status: "FAILED", errorMessage: "Generation timed out — please retry", updatedAt: new Date() })
+      .where(eq(attackGraphsTable.id as any, graph.id));
+    graph = { ...graph, status: "FAILED", errorMessage: "Generation timed out — please retry" };
+  }
+
+  if (!graph) { res.json({ status: "NOT_GENERATED" }); return; }
+
+  res.json({
+    ...graph,
+    graph: graph.graphJson ? JSON.parse(graph.graphJson) : null,
+  });
+});
+
+router.get("/:scanId/stream", requireAuth, async (req, res: Response) => {
+  const scanId = req.params.scanId as string;
+  const access = await resolveAccess(req, scanId);
+  if (!access) { res.status(404).json({ error: "Not found" }); return; }
+
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+  res.flushHeaders();
+
+  const emit = (event: string, data: unknown) =>
+    res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+
+  const emitter = getEmitter(scanId);
+  let closed = false;
+
+  const handlers = {
+    step: (d: any) => { if (!closed) emit("step", d); },
+    token: (d: any) => { if (!closed) emit("token", d); },
+    done: (d: any) => { if (!closed) { emit("done", d); res.end(); } },
+    fail: (d: any) => { if (!closed) { emit("fail", d); res.end(); } },
+    progress: (d: any) => { if (!closed) emit("progress", d); },
+  };
+
+  for (const [event, handler] of Object.entries(handlers)) {
+    emitter.on(event, handler);
+  }
+
+  // Auto-trigger generation if it's supposed to be generating but isn't in flight
+  // This is critical for Vercel/Serverless where the initial POST might return and die.
+  const [graph] = await db.select().from(attackGraphsTable)
+    .where(eq(attackGraphsTable.scanId as any, scanId));
+
+  if (graph?.status === "GENERATING" && !inFlightGenerations.has(scanId)) {
+    startGeneration(scanId, req).catch(() => { });
+  }
+
+  req.on("close", () => {
+    closed = true;
+    for (const [event, handler] of Object.entries(handlers)) {
+      emitter.off(event, handler);
+    }
+  });
+});
+
+router.post("/:scanId/reset", requireAuth, async (req, res) => {
+  const scanId = req.params.scanId as string;
+  const access = await resolveAccess(req, scanId);
+  if (!access) { res.status(404).json({ error: "Not found" }); return; }
+
+  await db.delete(attackGraphsTable).where(eq(attackGraphsTable.scanId as any, scanId));
+  res.json({ status: "NOT_GENERATED" });
+});
+
+router.post("/:scanId/generate", requireAuth, async (req, res) => {
+  const scanId = req.params.scanId as string;
+  const access = await resolveAccess(req, scanId);
+  if (!access) { res.status(404).json({ error: "Not found" }); return; }
+  const { scan } = access;
 
   if (scan.status !== "COMPLETED") {
     res.status(400).json({ error: "Scan must be completed first" }); return;
@@ -599,10 +865,10 @@ router.post("/:scanId/generate", requireAuth, async (req, res) => {
     .where(eq(attackGraphsTable.scanId as any, scanId));
 
   if (existing?.status === "GENERATING" && !isStale(existing)) {
-    res.json({ status: "GENERATING", message: "Already running" }); return;
+    res.json({ status: "GENERATING", message: "Already running", id: existing.id });
+    return;
   }
 
-  // Upsert
   let graphId: string;
   if (existing) {
     await db.update(attackGraphsTable)
@@ -615,170 +881,10 @@ router.post("/:scanId/generate", requireAuth, async (req, res) => {
     graphId = rec.id;
   }
 
+  // Fire and forget (the /stream endpoint will actually ensure it runs)
+  startGeneration(scanId, req).catch(() => { });
+
   res.json({ status: "GENERATING", id: graphId });
-
-  // ── Background generation ──────────────────────────────────────────────────
-  const emitter  = getEmitter(scanId);
-  const step = (msg: string, num: number) =>
-    emitter.emit("step", { step: num, message: msg, ts: Date.now() });
-  const progress = (pct: number, msg: string) =>
-    emitter.emit("progress", { percent: pct, message: msg });
-
-  (async () => {
-    try {
-      step("Fetching findings from database…", 1);
-      const findings = await db.select().from(findingsTable)
-        .where(eq(findingsTable.scanId as any, scanId));
-
-      step(`Pre-processing ${findings.length} findings…`, 2);
-      progress(10, "Analyzing finding patterns and attack surface…");
-
-      const { sorted, suspectedFPs, byEndpoint, chainablePairs } = preprocessFindings(findings);
-      const techStack    = detectTechStack(findings);
-      const findingsText = formatFindingsForPrompt(sorted);
-
-      step(`Tech stack detected: ${techStack.slice(0, 60)}…`, 3);
-      progress(20, `Detected: ${techStack.slice(0, 40)} — building targeted chains…`);
-
-      const systemPrompt = buildSystemPrompt(techStack, suspectedFPs.length);
-      const userPrompt   = buildUserPrompt(
-        project, scan, techStack, findingsText, suspectedFPs, chainablePairs,
-      );
-
-      // ── Multi-model generation with retry ──────────────────────────────────
-      const uniqueModels = [...new Set(NIM_MODELS)];
-
-      const runGeneration = async (model: string): Promise<any> => {
-        step(`Connecting to NVIDIA NIM (${model})…`, 4);
-        progress(30, `Sending to ${model}…`);
-
-        const nimResp = await fetch(`${NIM_BASE}/chat/completions`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${nimKey}`,
-          },
-          body: JSON.stringify({
-            model,
-            max_tokens: 7000,
-            stream: true,
-            temperature: 0.12,   // Lower = more precise/deterministic
-            top_p: 0.85,
-            messages: [
-              { role: "system", content: systemPrompt },
-              { role: "user",   content: userPrompt   },
-            ],
-          }),
-          signal: AbortSignal.timeout(150_000),
-        });
-
-        if (!nimResp.ok) {
-          const errText = await nimResp.text();
-          throw new Error(`NIM API error ${nimResp.status}: ${errText.slice(0, 300)}`);
-        }
-
-        step(`FORGE-1 generating attack chains (${model})…`, 5);
-        progress(40, "AI is reasoning through attack chains…");
-
-        // Stream tokens
-        const reader   = nimResp.body!.getReader();
-        const decoder  = new TextDecoder();
-        let fullContent = "";
-        let buffer      = "";
-        let tokenCount  = 0;
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-
-          buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split("\n");
-          buffer = lines.pop() || "";
-
-          for (const line of lines) {
-            if (!line.startsWith("data: ")) continue;
-            const data = line.slice(6).trim();
-            if (data === "[DONE]") break;
-            try {
-              const parsed = JSON.parse(data);
-              const token  = parsed.choices?.[0]?.delta?.content || "";
-              if (token) {
-                fullContent += token;
-                tokenCount++;
-                emitter.emit("token", { token });
-                // Progress updates every 200 tokens
-                if (tokenCount % 200 === 0) {
-                  const pct = Math.min(40 + Math.floor(tokenCount / 50), 85);
-                  progress(pct, `Generating chains… (${tokenCount} tokens)`);
-                }
-              }
-            } catch { /* skip malformed SSE lines */ }
-          }
-        }
-
-        step("Parsing and validating attack graph…", 6);
-        progress(88, "Validating graph structure…");
-
-        const raw    = extractJson(fullContent);
-        const repaired = validateAndRepair(raw, findings);
-
-        if (!repaired.chains?.length)     throw new Error("No chains generated");
-        if (!repaired.nodes?.length)      throw new Error("No nodes generated");
-        if (repaired.chains.length < 2)   throw new Error("Too few chains — likely truncated");
-
-        return repaired;
-      };
-
-      let parsed: any = null;
-      let lastError: Error | null = null;
-
-      for (const model of uniqueModels) {
-        try {
-          parsed = await runGeneration(model);
-          break;
-        } catch (err) {
-          lastError = err instanceof Error ? err : new Error(String(err));
-          step(`Model ${model} failed: ${lastError.message.slice(0, 80)}. Trying next…`, 4);
-          progress(30, `Retrying with fallback model…`);
-        }
-      }
-
-      if (!parsed) throw lastError ?? new Error("All models failed");
-
-      step("Saving attack graph to database…", 7);
-      progress(95, "Saving results…");
-
-      await db.update(attackGraphsTable)
-        .set({
-          status:           "COMPLETE",
-          graphJson:         JSON.stringify(parsed),
-          chainedRiskLevel:  parsed.chainedRiskLevel,
-          chainedRiskScore:  parsed.chainedRiskScore,
-          updatedAt:         new Date(),
-        })
-        .where(eq(attackGraphsTable.id as any, graphId));
-
-      progress(100, "Complete!");
-      emitter.emit("done", {
-        status:           "COMPLETE",
-        chainedRiskLevel:  parsed.chainedRiskLevel,
-        chainedRiskScore:  parsed.chainedRiskScore,
-        chainsGenerated:   parsed.chains.length,
-        falsePositivesSkipped: parsed.falsePositivesSkipped?.length ?? 0,
-        graph:             parsed,
-      });
-
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      await db.update(attackGraphsTable)
-        .set({ status: "FAILED", errorMessage: msg, updatedAt: new Date() })
-        .where(eq(attackGraphsTable.id as any, graphId));
-      emitter.emit("fail", { error: msg });
-    } finally {
-      // Give SSE clients time to receive done/fail before cleanup
-      setTimeout(() => emitters.delete(scanId), EMITTER_TTL_MS);
-    }
-  })();
 });
 
 export default router;

@@ -6,24 +6,24 @@ import type { ScanMode, FindingInput, ScanContext } from "./modules/types.js";
 import { isAtLeastPlan } from "../plan.js";
 
 // ── Module imports ────────────────────────────────────────────────────────────
-import { runHeadersModule }        from "./modules/headers.js";
+import { runHeadersModule } from "./modules/headers.js";
 import { runInfoDisclosureModule } from "./modules/infoDisclosure.js";
-import { runAuthSecurityModule }   from "./modules/authSecurity.js";
-import { runBusinessLogicModule }  from "./modules/businessLogic.js";
-import { runTLSCookiesModule }     from "./modules/tlsCookies.js";
-import { runSupplyChainModule }    from "./modules/supplyChain.js";
-import { runXSSDetectionModule }   from "./modules/xssDetection.js";
-import { runSSRFRedirectModule }   from "./modules/ssrfRedirect.js";
-import { runDNSSecurityModule }    from "./modules/dnsSecurity.js";
-import { runAPISecurityModule }    from "./modules/apiSecurity.js";
-import { runWordPressModule }      from "./modules/wordpressScanner.js";
-import { runGitHubSASTModule }      from "./modules/github.js";
+import { runAuthSecurityModule } from "./modules/authSecurity.js";
+import { runBusinessLogicModule } from "./modules/businessLogic.js";
+import { runTLSCookiesModule } from "./modules/tlsCookies.js";
+import { runSupplyChainModule } from "./modules/supplyChain.js";
+import { runXSSDetectionModule } from "./modules/xssDetection.js";
+import { runSSRFRedirectModule } from "./modules/ssrfRedirect.js";
+import { runDNSSecurityModule } from "./modules/dnsSecurity.js";
+import { runAPISecurityModule } from "./modules/apiSecurity.js";
+import { runWordPressModule } from "./modules/wordpressScanner.js";
+import { runGitHubSASTModule } from "./modules/github.js";
 import { runAutonomousPentestAgent } from "./modules/autonomousAgent.js";
 import { correlateFindings, computeRiskScore } from "./modules/correlationEngine.js";
-import { enrichWithRemediation }  from "./modules/remediationEngine.js";
-import { enrichWithCompliance }   from "./modules/complianceMapping.js";
+import { enrichWithRemediation } from "./modules/remediationEngine.js";
+import { enrichWithCompliance } from "./modules/complianceMapping.js";
 import { enrichCVEs, attachCvesToFinding } from "./modules/cveEnrichment.js";
-import { computeScanDiff }        from "./modules/scanDiff.js";
+import { computeScanDiff } from "./modules/scanDiff.js";
 import { reopenResurfacedFindings } from "../autopilot.js";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -68,22 +68,22 @@ function detectTechnologies(bodyText: string, headers: Record<string, string>): 
   const all = (bodyText.slice(0, 50000) + Object.entries(headers).map(([k, v]) => `${k}: ${v}`).join('\n')).toLowerCase();
 
   const signatures: [string, RegExp][] = [
-    ['Next.js',     /__next_data__|_next\//i],
-    ['React',       /react(?:\.development|\.production|\.min)?\.js|__react/i],
-    ['Vue.js',      /vue(?:\.runtime|\.min)?\.js|__vue__|vue-router/i],
-    ['Angular',     /angular(?:\.min)?\.js|ng-version|ng-app/i],
-    ['WordPress',   /wp-content\/|wp-includes\//i],
-    ['Django',      /csrfmiddlewaretoken|django/i],
-    ['Laravel',     /laravel|livewire/i],
-    ['Rails',       /x-runtime.*ruby|rails/i],
-    ['Express.js',  /x-powered-by.*express/i],
-    ['GraphQL',     /graphql|graph_ql/i],
-    ['Stripe',      /stripe\.(com|js)|pk_live_|pk_test_/i],
-    ['Cloudflare',  /cf-ray|cloudflare/i],
-    ['AWS',         /amazonaws\.com|x-amz-|cloudfront/i],
-    ['Vercel',      /x-vercel-id|vercel\.app/i],
-    ['Supabase',    /supabase\.co/i],
-    ['Firebase',    /firebase\.googleapis\.com/i],
+    ['Next.js', /__next_data__|_next\//i],
+    ['React', /react(?:\.development|\.production|\.min)?\.js|__react/i],
+    ['Vue.js', /vue(?:\.runtime|\.min)?\.js|__vue__|vue-router/i],
+    ['Angular', /angular(?:\.min)?\.js|ng-version|ng-app/i],
+    ['WordPress', /wp-content\/|wp-includes\//i],
+    ['Django', /csrfmiddlewaretoken|django/i],
+    ['Laravel', /laravel|livewire/i],
+    ['Rails', /x-runtime.*ruby|rails/i],
+    ['Express.js', /x-powered-by.*express/i],
+    ['GraphQL', /graphql|graph_ql/i],
+    ['Stripe', /stripe\.(com|js)|pk_live_|pk_test_/i],
+    ['Cloudflare', /cf-ray|cloudflare/i],
+    ['AWS', /amazonaws\.com|x-amz-|cloudfront/i],
+    ['Vercel', /x-vercel-id|vercel\.app/i],
+    ['Supabase', /supabase\.co/i],
+    ['Firebase', /firebase\.googleapis\.com/i],
     ['Spring Boot', /actuator|x-application-context/i],
   ];
 
@@ -133,7 +133,7 @@ async function runModuleSafe(
       scanId,
       level: "ERROR",
       message: `Module ${name} crashed: ${err instanceof Error ? err.message : String(err)}`,
-    }).catch(() => {});
+    }).catch(() => { });
     return [];
   }
 }
@@ -312,17 +312,17 @@ export async function runRealScan(
       wpFindings,
       githubFindings,
     ] = await Promise.all([
-      runModuleSafe("TLS/Cookies",         scanId, () => runTLSCookiesModule(ctx)),
-      runModuleSafe("Headers",             scanId, () => runHeadersModule(ctx)),
-      runModuleSafe("Info Disclosure",     scanId, () => runInfoDisclosureModule(ctx)),
-      runModuleSafe("Auth Security",       scanId, () => runAuthSecurityModule(ctx)),
-      runModuleSafe("Supply Chain",        scanId, () => runSupplyChainModule(ctx)),
-      runModuleSafe("XSS Detection",       scanId, () => runXSSDetectionModule(ctx)),
-      runModuleSafe("SSRF/Redirect",       scanId, () => runSSRFRedirectModule(ctx)),
-      runModuleSafe("DNS Security",        scanId, () => runDNSSecurityModule(ctx)),
-      runModuleSafe("API Security",        scanId, () => runAPISecurityModule(ctx)),
-      runModuleSafe("WordPress",           scanId, () => runWordPressModule(ctx)),
-      runModuleSafe("GitHub SAST",         scanId, () => runGitHubSASTModule(ctx)),
+      runModuleSafe("TLS/Cookies", scanId, () => runTLSCookiesModule(ctx)),
+      runModuleSafe("Headers", scanId, () => runHeadersModule(ctx)),
+      runModuleSafe("Info Disclosure", scanId, () => runInfoDisclosureModule(ctx)),
+      runModuleSafe("Auth Security", scanId, () => runAuthSecurityModule(ctx)),
+      runModuleSafe("Supply Chain", scanId, () => runSupplyChainModule(ctx)),
+      runModuleSafe("XSS Detection", scanId, () => runXSSDetectionModule(ctx)),
+      runModuleSafe("SSRF/Redirect", scanId, () => runSSRFRedirectModule(ctx)),
+      runModuleSafe("DNS Security", scanId, () => runDNSSecurityModule(ctx)),
+      runModuleSafe("API Security", scanId, () => runAPISecurityModule(ctx)),
+      runModuleSafe("WordPress", scanId, () => runWordPressModule(ctx)),
+      runModuleSafe("GitHub SAST", scanId, () => runGitHubSASTModule(ctx)),
     ] as any);
 
     findings.push(...tlsFindings, ...headerFindings, ...infoFindings,
@@ -584,8 +584,8 @@ If none, return [].`;
     }));
 
     // Count enriched findings
-    const remCount  = enrichedFindings.filter(f => f.remediationCode?.length).length;
-    const cveCount  = enrichedFindings.filter(f => f.cves?.length).length;
+    const remCount = enrichedFindings.filter(f => f.remediationCode?.length).length;
+    const cveCount = enrichedFindings.filter(f => f.cves?.length).length;
     const compCount = enrichedFindings.filter(f => f.compliance).length;
     await addLog(scanId, "INFO", `✓ Enrichment complete: ${remCount} with fix code · ${cveCount} with CVEs · ${compCount} with compliance mapping`);
 
@@ -613,8 +613,8 @@ If none, return [].`;
     const insertedFindings: any[] = [];
     for (const f of enrichedFindings) {
       const remCode = f.remediationCode ? JSON.stringify(f.remediationCode) : null;
-      const compliance = f.compliance   ? JSON.stringify(f.compliance)       : null;
-      const cves       = f.cves?.length ? JSON.stringify(f.cves)             : null;
+      const compliance = f.compliance ? JSON.stringify(f.compliance) : null;
+      const cves = f.cves?.length ? JSON.stringify(f.cves) : null;
 
       const [ins] = await db.insert(findingsTable).values({
         scanId,
@@ -660,15 +660,15 @@ If none, return [].`;
       for (const member of members) {
         // Overall scan complete notification
         const emoji = criticalCount > 0 ? "🚨" : highCount > 0 ? "⚠️" : "✅";
-        const type  = criticalCount > 0 ? "error" : highCount > 0 ? "warning" : "success";
+        const type = criticalCount > 0 ? "error" : highCount > 0 ? "warning" : "success";
         createNotification({
-          userId:      member.userId,
+          userId: member.userId,
           workspaceId: project.workspaceId,
           type,
-          title:       `${emoji} Scan complete — ${project.name}`,
-          body:        `Found ${totalFindings} issue${totalFindings !== 1 ? "s" : ""} (${criticalCount} critical, ${highCount} high). Risk score: ${riskScore.toFixed(1)}/10`,
-          link:        `/scans/${scanId}`,
-        }).catch(() => {});
+          title: `${emoji} Scan complete — ${project.name}`,
+          body: `Found ${totalFindings} issue${totalFindings !== 1 ? "s" : ""} (${criticalCount} critical, ${highCount} high). Risk score: ${riskScore.toFixed(1)}/10`,
+          link: `/scans/${scanId}`,
+        }).catch(() => { });
 
         if (scanDiff) {
           createNotification({
@@ -678,20 +678,20 @@ If none, return [].`;
             title: `📈 Continuous drift update — ${project.name}`,
             body: `${scanDiff.newFindings.length} new · ${scanDiff.resolvedFindings.length} resolved${resurfacedCount > 0 ? ` · ${resurfacedCount} resurfaced` : ""}`,
             link: `/scans/${scanId}`,
-          }).catch(() => {});
+          }).catch(() => { });
         }
 
         // Per-critical finding urgent notification
         const criticalFindings = insertedFindings.filter(f => f.severity === "CRITICAL");
         for (const cf of criticalFindings.slice(0, 3)) {
           createNotification({
-            userId:      member.userId,
+            userId: member.userId,
             workspaceId: project.workspaceId,
-            type:        "error",
-            title:       `🔴 Critical: ${cf.title.slice(0, 80)}`,
-            body:        `Detected on ${project.name}. ${cf.description?.slice(0, 120) || ""}`,
-            link:        `/findings?scan=${scanId}`,
-          }).catch(() => {});
+            type: "error",
+            title: `🔴 Critical: ${cf.title.slice(0, 80)}`,
+            body: `Detected on ${project.name}. ${cf.description?.slice(0, 120) || ""}`,
+            link: `/findings?scan=${scanId}`,
+          }).catch(() => { });
         }
       }
 
@@ -701,23 +701,23 @@ If none, return [].`;
       if (webhookUrl) {
         const criticals = insertedFindings.filter(f => f.severity === "CRITICAL");
         for (const f of criticals) {
-          await sendCriticalFinding(f, project.name, APP_URL, webhookUrl).catch(() => {});
+          await sendCriticalFinding(f, project.name, APP_URL, webhookUrl).catch(() => { });
         }
         await sendScanComplete(
           { id: scanId, findingsCount: totalFindings, criticalCount, highCount },
           project.name, APP_URL, webhookUrl
-        ).catch(() => {});
+        ).catch(() => { });
       }
     }
 
   } catch (err) {
     await db.update(scansTable).set({ status: "FAILED", completedAt: new Date() })
-      .where(eq(scansTable.id, scanId)).catch(() => {});
+      .where(eq(scansTable.id, scanId)).catch(() => { });
     await db.insert(scanLogsTable).values({
       scanId,
       level: "ERROR",
       message: `Scan failed: ${err instanceof Error ? err.message : "Unknown error"}`,
-    }).catch(() => {});
+    }).catch(() => { });
 
     // Notify workspace members of failure
     try {
@@ -729,13 +729,13 @@ If none, return [].`;
             .where(eq(workspaceMembersTable.workspaceId as any, project.workspaceId));
           for (const member of members) {
             createNotification({
-              userId:      member.userId,
+              userId: member.userId,
               workspaceId: project.workspaceId,
-              type:        "error",
-              title:       `❌ Scan failed — ${project.name}`,
-              body:        `The scan could not complete. ${err instanceof Error ? err.message.slice(0, 100) : "Unknown error"}`,
-              link:        `/scans/${scanId}`,
-            }).catch(() => {});
+              type: "error",
+              title: `❌ Scan failed — ${project.name}`,
+              body: `The scan could not complete. ${err instanceof Error ? err.message.slice(0, 100) : "Unknown error"}`,
+              link: `/scans/${scanId}`,
+            }).catch(() => { });
           }
         }
       }

@@ -20,27 +20,27 @@ const api = (path: string, opts?: RequestInit) =>
   fetch(`${BASE}${path}`, { credentials: "include", ...opts });
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-interface GNode { id: string; type: "attacker"|"vulnerability"|"target"; label: string; description?: string; endpoint?: string; severity?: string; findingId?: string; technique?: string; }
+interface GNode { id: string; type: "attacker" | "vulnerability" | "target"; label: string; description?: string; endpoint?: string; severity?: string; findingId?: string; technique?: string; }
 interface GEdge { id: string; source: string; target: string; label: string; chainId?: string; }
-interface Step  { stepNumber: number; title: string; findingId?: string|null; endpoint?: string; technique?: string; action: string; payload?: string; poc?: string; impact: string; }
+interface Step { stepNumber: number; title: string; findingId?: string | null; endpoint?: string; technique?: string; action: string; payload?: string; poc?: string; impact: string; }
 interface Chain { id: string; title: string; risk: string; riskScore: number; mitreIds?: string[]; description: string; steps: Step[]; }
-interface Graph  { summary: string; chainedRiskLevel: string; chainedRiskScore: number; attackSurface?: string; chains: Chain[]; nodes: GNode[]; edges: GEdge[]; }
+interface Graph { summary: string; chainedRiskLevel: string; chainedRiskScore: number; attackSurface?: string; chains: Chain[]; nodes: GNode[]; edges: GEdge[]; }
 interface GraphRecord { id?: string; status: string; chainedRiskLevel?: string; chainedRiskScore?: number; graph?: Graph; errorMessage?: string; }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-const RISK_C: Record<string,string> = { CRITICAL:"#ef4444", HIGH:"#f97316", MEDIUM:"#eab308", LOW:"#22c55e" };
-const RISK_BG: Record<string,string> = { CRITICAL:"rgba(239,68,68,.15)", HIGH:"rgba(249,115,22,.15)", MEDIUM:"rgba(234,179,8,.15)", LOW:"rgba(34,197,94,.15)" };
-const RISK_BD: Record<string,string> = { CRITICAL:"rgba(239,68,68,.4)", HIGH:"rgba(249,115,22,.4)", MEDIUM:"rgba(234,179,8,.4)", LOW:"rgba(34,197,94,.4)" };
+const RISK_C: Record<string, string> = { CRITICAL: "#ef4444", HIGH: "#f97316", MEDIUM: "#eab308", LOW: "#22c55e" };
+const RISK_BG: Record<string, string> = { CRITICAL: "rgba(239,68,68,.15)", HIGH: "rgba(249,115,22,.15)", MEDIUM: "rgba(234,179,8,.15)", LOW: "rgba(34,197,94,.15)" };
+const RISK_BD: Record<string, string> = { CRITICAL: "rgba(239,68,68,.4)", HIGH: "rgba(249,115,22,.4)", MEDIUM: "rgba(234,179,8,.4)", LOW: "rgba(34,197,94,.4)" };
 
 function RiskBadge({ level }: { level: string }) {
   const c = RISK_C[level] || "#94a3b8";
-  return <span style={{ color:c, background:RISK_BG[level]||"rgba(148,163,184,.1)", border:`1px solid ${RISK_BD[level]||"rgba(148,163,184,.3)"}` }} className="text-[11px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide whitespace-nowrap">{level}</span>;
+  return <span style={{ color: c, background: RISK_BG[level] || "rgba(148,163,184,.1)", border: `1px solid ${RISK_BD[level] || "rgba(148,163,184,.3)"}` }} className="text-[11px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide whitespace-nowrap">{level}</span>;
 }
 
 // ─── Custom Nodes ─────────────────────────────────────────────────────────────
 function AttackerNode({ data }: { data: any }) {
   return (
-    <div style={{ background:"rgba(239,68,68,.08)", border:"2px solid rgba(239,68,68,.45)" }} className="rounded-2xl px-5 py-4 min-w-[160px] text-center shadow-2xl shadow-red-900/30 cursor-pointer hover:shadow-red-500/20 transition-shadow">
+    <div style={{ background: "rgba(239,68,68,.08)", border: "2px solid rgba(239,68,68,.45)" }} className="rounded-2xl px-5 py-4 min-w-[160px] text-center shadow-2xl shadow-red-900/30 cursor-pointer hover:shadow-red-500/20 transition-shadow">
       <div className="flex items-center justify-center mb-2">
         <div className="w-10 h-10 rounded-full bg-red-500/10 border border-red-500/30 flex items-center justify-center">
           <Crosshair className="w-5 h-5 text-red-400" />
@@ -54,21 +54,21 @@ function AttackerNode({ data }: { data: any }) {
 
 function VulnNode({ data }: { data: any }) {
   const sev = data.severity || "MEDIUM";
-  const c   = RISK_C[sev]  || "#94a3b8";
-  const bg  = RISK_BG[sev] || "rgba(148,163,184,.1)";
-  const bd  = RISK_BD[sev] || "rgba(148,163,184,.3)";
+  const c = RISK_C[sev] || "#94a3b8";
+  const bg = RISK_BG[sev] || "rgba(148,163,184,.1)";
+  const bd = RISK_BD[sev] || "rgba(148,163,184,.3)";
   const Icon = sev === "CRITICAL" || sev === "HIGH" ? AlertTriangle : Shield;
   return (
-    <div style={{ background:bg, border:`2px solid ${bd}` }} className="rounded-2xl px-4 py-3 min-w-[190px] shadow-xl cursor-pointer hover:scale-[1.02] transition-transform">
+    <div style={{ background: bg, border: `2px solid ${bd}` }} className="rounded-2xl px-4 py-3 min-w-[190px] shadow-xl cursor-pointer hover:scale-[1.02] transition-transform">
       <div className="flex items-center gap-2 mb-2">
-        <div style={{ background:`${c}20`, border:`1px solid ${c}40` }} className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0">
-          <Icon style={{ color:c }} className="w-3.5 h-3.5" />
+        <div style={{ background: `${c}20`, border: `1px solid ${c}40` }} className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0">
+          <Icon style={{ color: c }} className="w-3.5 h-3.5" />
         </div>
         <RiskBadge level={sev} />
       </div>
       <div className="text-white font-semibold text-sm leading-tight">{data.label}</div>
       {data.endpoint && <div className="text-zinc-500 text-[11px] mt-1 font-mono truncate max-w-[170px]">{data.endpoint}</div>}
-      {data.technique && <div style={{ color:c }} className="text-[10px] mt-1 font-mono opacity-70">{data.technique}</div>}
+      {data.technique && <div style={{ color: c }} className="text-[10px] mt-1 font-mono opacity-70">{data.technique}</div>}
     </div>
   );
 }
@@ -77,10 +77,10 @@ function TargetNode({ data }: { data: any }) {
   const lbl = (data.label || "").toLowerCase();
   const Icon = lbl.includes("db") || lbl.includes("data") ? Database
     : lbl.includes("admin") ? Lock
-    : lbl.includes("shell") || lbl.includes("rce") ? Code2
-    : lbl.includes("server") ? Server : Target;
+      : lbl.includes("shell") || lbl.includes("rce") ? Code2
+        : lbl.includes("server") ? Server : Target;
   return (
-    <div style={{ background:"rgba(139,92,246,.1)", border:"2px solid rgba(139,92,246,.4)" }} className="rounded-2xl px-5 py-4 min-w-[160px] text-center shadow-xl shadow-violet-900/30 cursor-pointer hover:shadow-violet-500/20 transition-shadow">
+    <div style={{ background: "rgba(139,92,246,.1)", border: "2px solid rgba(139,92,246,.4)" }} className="rounded-2xl px-5 py-4 min-w-[160px] text-center shadow-xl shadow-violet-900/30 cursor-pointer hover:shadow-violet-500/20 transition-shadow">
       <div className="flex items-center justify-center mb-2">
         <div className="w-10 h-10 rounded-full bg-violet-500/10 border border-violet-500/30 flex items-center justify-center">
           <Icon className="w-5 h-5 text-violet-400" />
@@ -96,7 +96,7 @@ const nodeTypes = { attacker: AttackerNode, vulnerability: VulnNode, target: Tar
 
 // ─── Layout ───────────────────────────────────────────────────────────────────
 function buildLayout(gnodes: GNode[], gedges: GEdge[]): { nodes: any[]; edges: any[] } {
-  const layer: Record<string,number> = {};
+  const layer: Record<string, number> = {};
   gnodes.forEach(n => {
     if (n.type === "attacker") layer[n.id] = 0;
     else if (n.type === "target") layer[n.id] = 3;
@@ -106,14 +106,14 @@ function buildLayout(gnodes: GNode[], gedges: GEdge[]): { nodes: any[]; edges: a
   gnodes.forEach(n => { if (n.type === "vulnerability" && !directFromAttacker.has(n.id)) layer[n.id] = 2; });
 
   const byLayer: Record<number, GNode[]> = {};
-  gnodes.forEach(n => { const l = layer[n.id]??1; (byLayer[l] ??= []).push(n); });
+  gnodes.forEach(n => { const l = layer[n.id] ?? 1; (byLayer[l] ??= []).push(n); });
 
   const XS = 360, YS = 170;
   const rfNodes: any[] = [];
   Object.entries(byLayer).forEach(([l, ns]) => {
     const x = parseInt(l) * XS + 80;
     ns.forEach((n, i) => {
-      const y = -(ns.length-1)*YS/2 + i*YS + 320;
+      const y = -(ns.length - 1) * YS / 2 + i * YS + 320;
       rfNodes.push({ id: n.id, type: n.type, position: { x, y }, data: { ...n } });
     });
   });
@@ -179,18 +179,18 @@ export default function AttackGraph() {
   const { id: scanId } = useParams<{ id: string }>();
   const { data: scan } = useGetScan(scanId);
 
-  const [record, setRecord]         = useState<GraphRecord|null>(null);
-  const [loading, setLoading]       = useState(true);
+  const [record, setRecord] = useState<GraphRecord | null>(null);
+  const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
-  const [selectedChain, setSelectedChain] = useState<Chain|null>(null);
-  const [selectedNode, setSelectedNode]   = useState<GNode|null>(null);
-  const [expanded, setExpanded]           = useState<Set<string>>(new Set());
-  const [streamLog, setStreamLog]         = useState<string[]>([]);
-  const [nimOutput, setNimOutput]         = useState("");
-  const [showDlMenu, setShowDlMenu]       = useState(false);
-  const [cyberMode, setCyberMode]         = useState(true);
-  const logRef    = useRef<HTMLDivElement>(null);
-  const evtSource = useRef<EventSource|null>(null);
+  const [selectedChain, setSelectedChain] = useState<Chain | null>(null);
+  const [selectedNode, setSelectedNode] = useState<GNode | null>(null);
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [streamLog, setStreamLog] = useState<string[]>([]);
+  const [nimOutput, setNimOutput] = useState("");
+  const [showDlMenu, setShowDlMenu] = useState(false);
+  const [cyberMode, setCyberMode] = useState(true);
+  const logRef = useRef<HTMLDivElement>(null);
+  const evtSource = useRef<EventSource | null>(null);
   const dlMenuRef = useRef<HTMLDivElement>(null);
 
   const [nodes, setNodes, onNodesChange] = (useNodesState as any)([]);
@@ -302,11 +302,11 @@ export default function AttackGraph() {
   useEffect(() => () => { evtSource.current?.close(); }, []);
 
   // ── Derived state (declared here so export callbacks can reference them) ──
-  const g              = record?.graph;
-  const isGenerating   = record?.status === "GENERATING" || generating;
-  const isComplete     = record?.status === "COMPLETE";
-  const isFailed       = record?.status === "FAILED";
-  const notGenerated   = !record || record.status === "NOT_GENERATED";
+  const g = record?.graph;
+  const isGenerating = record?.status === "GENERATING" || generating;
+  const isComplete = record?.status === "COMPLETE";
+  const isFailed = record?.status === "FAILED";
+  const notGenerated = !record || record.status === "NOT_GENERATED";
 
   const toggleExpand = (id: string) =>
     setExpanded(p => { const s = new Set(p); s.has(id) ? s.delete(id) : s.add(id); return s; });
@@ -330,9 +330,9 @@ export default function AttackGraph() {
   const exportJSON = useCallback(() => {
     if (!g) return;
     const blob = new Blob([JSON.stringify({ ...record, graph: g }, null, 2)], { type: "application/json" });
-    const url  = URL.createObjectURL(blob);
-    const a    = document.createElement("a"); a.href = url;
-    a.download = `attack-graph-${scanId?.slice(0, 8)}-${new Date().toISOString().slice(0,10)}.json`;
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url;
+    a.download = `attack-graph-${scanId?.slice(0, 8)}-${new Date().toISOString().slice(0, 10)}.json`;
     a.click(); URL.revokeObjectURL(url);
     setShowDlMenu(false);
   }, [g, record, scanId]);
@@ -340,10 +340,10 @@ export default function AttackGraph() {
   // ── Export: HTML Report ──────────────────────────────────────────────────
   const exportReport = useCallback(() => {
     if (!g) return;
-    const riskColor: Record<string,string> = { CRITICAL:"#ef4444", HIGH:"#f97316", MEDIUM:"#eab308", LOW:"#22c55e" };
+    const riskColor: Record<string, string> = { CRITICAL: "#ef4444", HIGH: "#f97316", MEDIUM: "#eab308", LOW: "#22c55e" };
     const rc = (level: string) => riskColor[level] || "#94a3b8";
 
-    const escHtml = (s: string = "") => s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+    const escHtml = (s: string = "") => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
     const chainsHtml = g.chains.map((chain, ci) => `
       <div class="chain">
@@ -353,7 +353,7 @@ export default function AttackGraph() {
             <span class="chain-score" style="color:${rc(chain.risk)}">${chain.riskScore?.toFixed(1)}/10</span>
           </div>
           <h3>${escHtml(chain.title)}</h3>
-          ${chain.mitreIds?.length ? `<div class="mitre-row">${chain.mitreIds.map(id=>`<a href="https://attack.mitre.org/techniques/${id}/" target="_blank" class="mitre-tag">${id}</a>`).join("")}</div>` : ""}
+          ${chain.mitreIds?.length ? `<div class="mitre-row">${chain.mitreIds.map(id => `<a href="https://attack.mitre.org/techniques/${id}/" target="_blank" class="mitre-tag">${id}</a>`).join("")}</div>` : ""}
           <p class="chain-desc">${escHtml(chain.description)}</p>
         </div>
         <div class="steps">
@@ -379,9 +379,9 @@ export default function AttackGraph() {
     const tableRows = vulnNodes.map(n => `
       <tr>
         <td>${escHtml(n.label)}</td>
-        <td><span class="badge sm" style="background:${rc(n.severity||"")}22;color:${rc(n.severity||"")};border:1px solid ${rc(n.severity||"")}44">${n.severity||"—"}</span></td>
-        <td class="mono">${escHtml(n.endpoint||"—")}</td>
-        <td class="mono small">${escHtml(n.technique||"—")}</td>
+        <td><span class="badge sm" style="background:${rc(n.severity || "")}22;color:${rc(n.severity || "")};border:1px solid ${rc(n.severity || "")}44">${n.severity || "—"}</span></td>
+        <td class="mono">${escHtml(n.endpoint || "—")}</td>
+        <td class="mono small">${escHtml(n.technique || "—")}</td>
       </tr>
     `).join("");
 
@@ -539,7 +539,7 @@ export default function AttackGraph() {
 
   <div class="footer">
     Generated by <strong>RedForge</strong> AI Penetration Testing Platform &nbsp;•&nbsp; ${escHtml(now)}<br>
-    Powered by NVIDIA NIM (nvidia/llama-3.1-nemotron-70b-instruct) &nbsp;•&nbsp; For authorized security testing only
+    Powered by Groq (meta-llama/llama-4-scout-17b-16e-instruct) &nbsp;•&nbsp; For authorized security testing only
   </div>
 </div>
 
@@ -547,15 +547,15 @@ export default function AttackGraph() {
 </html>`;
 
     const blob = new Blob([html], { type: "text/html" });
-    const url  = URL.createObjectURL(blob);
-    const a    = document.createElement("a"); a.href = url;
-    a.download = `attack-report-${scanId?.slice(0,8)}-${new Date().toISOString().slice(0,10)}.html`;
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url;
+    a.download = `attack-report-${scanId?.slice(0, 8)}-${new Date().toISOString().slice(0, 10)}.html`;
     a.click(); URL.revokeObjectURL(url);
     setShowDlMenu(false);
   }, [g, scanId]);
 
   return (
-    <div className="flex flex-col -mx-5 md:-mx-7 lg:-mx-8 -my-5 md:-my-7 lg:-my-8 animate-in fade-in duration-500" style={{ height:"calc(100vh - 56px)" }}>
+    <div className="flex flex-col -mx-5 md:-mx-7 lg:-mx-8 -my-5 md:-my-7 lg:-my-8 animate-in fade-in duration-500" style={{ height: "calc(100vh - 56px)" }}>
       <style>{`
         @keyframes redforge-edge-flow {
           to { stroke-dashoffset: -34; }
@@ -594,7 +594,7 @@ export default function AttackGraph() {
       `}</style>
 
       {/* ── Top header bar ── */}
-      <div className="flex items-center justify-between px-5 py-3 border-b border-border flex-shrink-0" style={{ background:"oklch(6% 0 0 / 0.9)", backdropFilter:"blur(12px)" }}>
+      <div className="flex items-center justify-between px-5 py-3 border-b border-border flex-shrink-0" style={{ background: "oklch(6% 0 0 / 0.9)", backdropFilter: "blur(12px)" }}>
         <div className="flex items-center gap-3 min-w-0">
           <Link href={`/scans/${scanId}`} className="text-muted-foreground hover:text-white flex items-center gap-1.5 text-sm transition-colors flex-shrink-0">
             <ArrowLeft className="w-4 h-4" />
@@ -648,10 +648,10 @@ export default function AttackGraph() {
                 </button>
                 <AnimatePresence>
                   {showDlMenu && (
-                    <motion.div initial={{ opacity:0, y:-6, scale:.96 }} animate={{ opacity:1, y:0, scale:1 }} exit={{ opacity:0, y:-6, scale:.96 }}
-                      transition={{ duration:.15 }}
+                    <motion.div initial={{ opacity: 0, y: -6, scale: .96 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -6, scale: .96 }}
+                      transition={{ duration: .15 }}
                       className="absolute right-0 top-full mt-1.5 w-48 rounded-xl border border-border shadow-2xl shadow-black/50 overflow-hidden z-50"
-                      style={{ background:"oklch(10% 0 0)" }}>
+                      style={{ background: "oklch(10% 0 0)" }}>
                       <button onClick={exportReport}
                         className="w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-violet-500/10 transition-colors text-left border-b border-border">
                         <FileText className="w-4 h-4 text-violet-400 flex-shrink-0" />
@@ -697,14 +697,14 @@ export default function AttackGraph() {
         <div className="flex flex-1 overflow-hidden">
 
           {/* Left: chains */}
-          <div className="w-[280px] flex-shrink-0 border-r border-border overflow-y-auto scrollbar-thin" style={{ background:"oklch(6.5% 0 0)" }}>
+          <div className="w-[280px] flex-shrink-0 border-r border-border overflow-y-auto scrollbar-thin" style={{ background: "oklch(6.5% 0 0)" }}>
             <ChainsSidebar g={g} selectedChain={selectedChain} expanded={expanded}
               onSelect={(c: any) => { setSelectedChain(c); setSelectedNode(null); }}
               onToggle={toggleExpand} />
           </div>
 
           {/* Center: React Flow */}
-          <div className="flex-1 relative" style={{ background:"#06060f" }}>
+          <div className="flex-1 relative" style={{ background: "#06060f" }}>
             <div
               className="absolute inset-0 pointer-events-none"
               style={{
@@ -715,27 +715,27 @@ export default function AttackGraph() {
             <ReactFlow nodes={nodes} edges={edges}
               onNodesChange={onNodesChange} onEdgesChange={onEdgesChange}
               onNodeClick={onNodeClick} nodeTypes={nodeTypes}
-              fitView fitViewOptions={{ padding:0.3 }}
+              fitView fitViewOptions={{ padding: 0.3 }}
               proOptions={{ hideAttribution: true }}
               className={`attack-flow-canvas ${cyberMode ? "cyber-on" : "cyber-off"}`}
               minZoom={0.15} maxZoom={2.5}>
               <Background variant={BackgroundVariant.Dots} gap={28} size={1} color="#111122" />
-              <Controls showInteractive={false} style={{ bottom:16, left:16 }} />
-              <MiniMap nodeColor={(n) => n.type==="attacker"?"#ef4444":n.type==="target"?"#8b5cf6":(RISK_C[(n.data as any).severity]||"#64748b")}
-                style={{ bottom:16, right:16, width:160, height:100 }} />
+              <Controls showInteractive={false} style={{ bottom: 16, left: 16 }} />
+              <MiniMap nodeColor={(n) => n.type === "attacker" ? "#ef4444" : n.type === "target" ? "#8b5cf6" : (RISK_C[(n.data as any).severity] || "#64748b")}
+                style={{ bottom: 16, right: 16, width: 160, height: 100 }} />
             </ReactFlow>
 
             {/* Legend */}
-            <div className="absolute top-4 right-4 border border-border rounded-xl p-3 text-xs backdrop-blur-sm" style={{ background:"oklch(8% 0 0 / 0.85)" }}>
+            <div className="absolute top-4 right-4 border border-border rounded-xl p-3 text-xs backdrop-blur-sm" style={{ background: "oklch(8% 0 0 / 0.85)" }}>
               {[
-                { color:"#ef4444", label:"Attacker" },
-                { color:"#f97316", label:"High Vuln" },
-                { color:"#eab308", label:"Medium Vuln" },
-                { color:"#22c55e", label:"Low Vuln" },
-                { color:"#8b5cf6", label:"Compromised Target" },
+                { color: "#ef4444", label: "Attacker" },
+                { color: "#f97316", label: "High Vuln" },
+                { color: "#eab308", label: "Medium Vuln" },
+                { color: "#22c55e", label: "Low Vuln" },
+                { color: "#8b5cf6", label: "Compromised Target" },
               ].map(({ color, label }) => (
                 <div key={label} className="flex items-center gap-2 mb-1.5 last:mb-0">
-                  <div className="w-2.5 h-2.5 rounded-full border-2 flex-shrink-0" style={{ borderColor:color, background:`${color}30` }} />
+                  <div className="w-2.5 h-2.5 rounded-full border-2 flex-shrink-0" style={{ borderColor: color, background: `${color}30` }} />
                   <span className="text-zinc-400">{label}</span>
                 </div>
               ))}
@@ -749,7 +749,7 @@ export default function AttackGraph() {
 
             {/* Summary bar */}
             {g.summary && (
-              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 max-w-xl border border-border rounded-xl px-4 py-2 text-xs text-zinc-400 text-center backdrop-blur-sm" style={{ background:"oklch(8% 0 0 / 0.85)" }}>
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 max-w-xl border border-border rounded-xl px-4 py-2 text-xs text-zinc-400 text-center backdrop-blur-sm" style={{ background: "oklch(8% 0 0 / 0.85)" }}>
                 <Info className="w-3 h-3 inline mr-1 text-violet-400" />
                 {g.summary}
               </div>
@@ -759,10 +759,10 @@ export default function AttackGraph() {
           {/* Right: detail panel */}
           <AnimatePresence>
             {(selectedNode || selectedChain) && (
-              <motion.div initial={{ x:320, opacity:0 }} animate={{ x:0, opacity:1 }} exit={{ x:320, opacity:0 }}
-                transition={{ type:"spring", stiffness:300, damping:30 }}
+              <motion.div initial={{ x: 320, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: 320, opacity: 0 }}
+                transition={{ type: "spring", stiffness: 300, damping: 30 }}
                 className="w-[320px] flex-shrink-0 border-l border-border overflow-y-auto scrollbar-thin"
-                style={{ background:"oklch(6.5% 0 0)" }}>
+                style={{ background: "oklch(6.5% 0 0)" }}>
                 {selectedNode
                   ? <NodeDetail node={selectedNode} g={g} />
                   : selectedChain
@@ -788,20 +788,20 @@ function EmptyState({ scan, onGenerate, generating }: any) {
           <div className="w-20 h-20 rounded-3xl bg-violet-500/8 border border-violet-500/15 flex items-center justify-center">
             <GitMerge className="w-9 h-9 text-violet-400" />
           </div>
-          <div className="absolute -inset-2 rounded-[28px] border border-violet-500/8 animate-ping" style={{ animationDuration:"3s" }} />
+          <div className="absolute -inset-2 rounded-[28px] border border-violet-500/8 animate-ping" style={{ animationDuration: "3s" }} />
         </div>
         <h2 className="text-2xl font-bold text-white mb-2">AI Attack Path Analysis</h2>
         <p className="text-muted-foreground mb-6 leading-relaxed text-sm">
-          NVIDIA NIM analyzes every vulnerability and chains them into realistic multi-stage attack paths —
+          Groq analyzes every vulnerability and chains them into realistic multi-stage attack paths —
           showing exactly how an attacker would move from initial access to full compromise.
         </p>
         <div className="grid grid-cols-3 gap-3 mb-7 text-left">
           {[
-            { icon: Zap,      label: "Chain vulns",        desc: "See how weaknesses combine for maximum damage" },
-            { icon: Activity, label: "MITRE ATT&CK",       desc: "Mapped to real adversary techniques and tactics" },
-            { icon: Shield,   label: "Remediation focus",  desc: "Fix one finding to break the most chains" },
+            { icon: Zap, label: "Chain vulns", desc: "See how weaknesses combine for maximum damage" },
+            { icon: Activity, label: "MITRE ATT&CK", desc: "Mapped to real adversary techniques and tactics" },
+            { icon: Shield, label: "Remediation focus", desc: "Fix one finding to break the most chains" },
           ].map(({ icon: Icon, label, desc }) => (
-            <div key={label} className="border border-border rounded-xl p-3" style={{ background:"oklch(8% 0 0)" }}>
+            <div key={label} className="border border-border rounded-xl p-3" style={{ background: "oklch(8% 0 0)" }}>
               <Icon className="w-4 h-4 text-violet-400 mb-2" />
               <div className="text-white text-xs font-semibold mb-1">{label}</div>
               <div className="text-muted-foreground text-[11px] leading-relaxed">{desc}</div>
@@ -823,30 +823,28 @@ function EmptyState({ scan, onGenerate, generating }: any) {
   );
 }
 
-function GeneratingState({ streamLog, nimOutput, logRef }: { streamLog: string[]; nimOutput: string; logRef: React.RefObject<HTMLDivElement|null> }) {
+function GeneratingState({ streamLog, nimOutput, logRef }: { streamLog: string[]; nimOutput: string; logRef: React.RefObject<HTMLDivElement | null> }) {
   return (
     <div className="flex-1 flex flex-col md:flex-row gap-0 overflow-hidden">
       {/* Left: steps */}
-      <div className="w-full md:w-[340px] flex-shrink-0 border-r border-border p-5 flex flex-col" style={{ background:"oklch(6.5% 0 0)" }}>
+      <div className="w-full md:w-[340px] flex-shrink-0 border-r border-border p-5 flex flex-col" style={{ background: "oklch(6.5% 0 0)" }}>
         <div className="flex items-center gap-2 mb-4">
           <div className="relative">
             <div className="w-8 h-8 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center">
               <Cpu className="w-4 h-4 text-violet-400" />
             </div>
-            <div className="absolute inset-0 rounded-xl border border-violet-500/30 animate-ping" style={{ animationDuration:"2s" }} />
+            <div className="absolute inset-0 rounded-xl border border-violet-500/30 animate-ping" style={{ animationDuration: "2s" }} />
           </div>
           <div>
-            <div className="text-white text-sm font-semibold">NVIDIA NIM Processing</div>
-            <div className="text-muted-foreground text-xs">nvidia/llama-3.1-nemotron-70b-instruct
-              
-            </div>
+            <div className="text-white text-sm font-semibold">Groq Processing</div>
+            <div className="text-muted-foreground text-xs">meta-llama/llama-4-scout-17b-16e-instruct</div>
           </div>
         </div>
         <div className="space-y-2 flex-1">
-          {["Fetching scan findings…", "Mapping endpoint relationships…", "Connecting to NIM AI…", "Generating attack paths…", "Validating graph structure…"].map((label, i) => {
-            const done  = streamLog.length > i + 1;
+          {["Fetching scan findings…", "Mapping endpoint relationships…", "Connecting to Groq AI…", "Generating attack paths…", "Validating graph structure…"].map((label, i) => {
+            const done = streamLog.length > i + 1;
             const active = streamLog.length === i + 1 || (i === 0 && streamLog.length === 0);
-            const msg   = streamLog[i] || label;
+            const msg = streamLog[i] || label;
             return (
               <div key={i} className={`flex items-start gap-3 text-sm transition-all duration-500 ${streamLog.length > i ? "opacity-100" : "opacity-25"}`}>
                 {done
@@ -866,7 +864,7 @@ function GeneratingState({ streamLog, nimOutput, logRef }: { streamLog: string[]
 
       {/* Right: live NIM output */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        <div className="flex items-center justify-between px-4 py-2.5 border-b border-border" style={{ background:"oklch(5% 0 0)" }}>
+        <div className="flex items-center justify-between px-4 py-2.5 border-b border-border" style={{ background: "oklch(5% 0 0)" }}>
           <div className="flex items-center gap-2 text-xs text-zinc-500 font-mono">
             <span className="flex h-2 w-2 relative">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-violet-400 opacity-75" />
@@ -875,10 +873,10 @@ function GeneratingState({ streamLog, nimOutput, logRef }: { streamLog: string[]
             nim_output_stream.json
           </div>
         </div>
-        <div ref={logRef as any} className="flex-1 overflow-y-auto p-4 font-mono text-[11px] leading-relaxed text-green-400/80 scrollbar-thin" style={{ background:"oklch(4% 0 0)" }}>
+        <div ref={logRef as any} className="flex-1 overflow-y-auto p-4 font-mono text-[11px] leading-relaxed text-green-400/80 scrollbar-thin" style={{ background: "oklch(4% 0 0)" }}>
           {nimOutput
             ? <pre className="whitespace-pre-wrap break-all">{nimOutput}<span className="inline-block w-1.5 h-3 bg-green-400 animate-pulse ml-0.5 align-middle" /></pre>
-            : <div className="text-zinc-600">Waiting for NVIDIA NIM response…<span className="inline-block w-1.5 h-3 bg-zinc-600 animate-pulse ml-1 align-middle" /></div>}
+            : <div className="text-zinc-600">Waiting for Groq response…<span className="inline-block w-1.5 h-3 bg-zinc-600 animate-pulse ml-1 align-middle" /></div>}
         </div>
       </div>
     </div>
@@ -915,7 +913,7 @@ function ChainsSidebar({ g, selectedChain, expanded, onSelect, onToggle }: any) 
   return (
     <div className="p-4">
       {g.attackSurface && (
-        <div className="mb-4 p-3 rounded-xl border border-violet-500/15" style={{ background:"rgba(139,92,246,.06)" }}>
+        <div className="mb-4 p-3 rounded-xl border border-violet-500/15" style={{ background: "rgba(139,92,246,.06)" }}>
           <div className="text-[10px] text-violet-400 uppercase tracking-wider font-semibold mb-1.5">Attack Surface</div>
           <p className="text-zinc-300 text-xs leading-relaxed">{g.attackSurface}</p>
         </div>
@@ -937,12 +935,12 @@ function ChainsSidebar({ g, selectedChain, expanded, onSelect, onToggle }: any) 
               <button className="w-full text-left p-3" onClick={() => onSelect(chain)}>
                 <div className="flex items-center gap-2 mb-1.5">
                   <RiskBadge level={chain.risk} />
-                  <span style={{ color:c }} className="text-xs font-mono font-bold ml-auto">{chain.riskScore?.toFixed(1)}</span>
+                  <span style={{ color: c }} className="text-xs font-mono font-bold ml-auto">{chain.riskScore?.toFixed(1)}</span>
                 </div>
                 <div className="text-white text-xs font-semibold leading-tight">{chain.title}</div>
                 {chain.mitreIds?.length && (
                   <div className="flex gap-1 mt-1.5 flex-wrap">
-                    {chain.mitreIds.slice(0,3).map(id => (
+                    {chain.mitreIds.slice(0, 3).map(id => (
                       <span key={id} className="text-[10px] bg-zinc-800 text-zinc-400 px-1.5 py-0.5 rounded font-mono">{id}</span>
                     ))}
                   </div>
@@ -957,7 +955,7 @@ function ChainsSidebar({ g, selectedChain, expanded, onSelect, onToggle }: any) 
                 <div className="px-3 pb-3 space-y-2 border-t border-border/30">
                   {chain.steps?.map((s, i) => (
                     <div key={i} className="flex items-start gap-2 pt-2">
-                      <div style={{ background:`${c}18`, color:c }} className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0 mt-0.5">{s.stepNumber}</div>
+                      <div style={{ background: `${c}18`, color: c }} className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0 mt-0.5">{s.stepNumber}</div>
                       <div>
                         <div className="text-white text-[11px] font-medium">{s.title}</div>
                         <div className="text-muted-foreground text-[11px]">{s.impact}</div>
@@ -983,7 +981,7 @@ function ChainDetail({ chain }: { chain: Chain }) {
         <h2 className="text-base font-bold text-white mt-2 leading-tight">{chain.title}</h2>
         <div className="flex items-center gap-2 mt-1">
           <span className="text-xs text-muted-foreground">Risk Score:</span>
-          <span style={{ color:c }} className="text-sm font-mono font-bold">{chain.riskScore?.toFixed(1)} / 10</span>
+          <span style={{ color: c }} className="text-sm font-mono font-bold">{chain.riskScore?.toFixed(1)} / 10</span>
         </div>
         {chain.mitreIds?.length && (
           <div className="flex gap-1 mt-2 flex-wrap">
@@ -1001,11 +999,11 @@ function ChainDetail({ chain }: { chain: Chain }) {
       <div className="relative space-y-4">
         {chain.steps?.map((s, i) => (
           <div key={i} className="relative">
-            {i < chain.steps.length-1 && (
-              <div className="absolute left-[14px] top-8 bottom-0 w-px" style={{ background:`${c}20` }} />
+            {i < chain.steps.length - 1 && (
+              <div className="absolute left-[14px] top-8 bottom-0 w-px" style={{ background: `${c}20` }} />
             )}
             <div className="flex items-start gap-3">
-              <div style={{ background:`${c}18`, border:`1px solid ${c}35`, color:c }}
+              <div style={{ background: `${c}18`, border: `1px solid ${c}35`, color: c }}
                 className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">
                 {s.stepNumber}
               </div>
@@ -1015,13 +1013,13 @@ function ChainDetail({ chain }: { chain: Chain }) {
                 {s.endpoint && <div className="font-mono text-[10px] text-zinc-500 mb-1 truncate">{s.endpoint}</div>}
                 <div className="text-zinc-400 text-xs mb-2">{s.action}</div>
                 {s.payload && (
-                  <div className="rounded-lg p-2 mb-2" style={{ background:"oklch(4% 0 0)", border:"1px solid oklch(15% 0 0)" }}>
+                  <div className="rounded-lg p-2 mb-2" style={{ background: "oklch(4% 0 0)", border: "1px solid oklch(15% 0 0)" }}>
                     <div className="text-[9px] text-zinc-600 uppercase mb-1">Payload</div>
                     <code className="text-amber-400 text-[10px] break-all">{s.payload}</code>
                   </div>
                 )}
                 {s.poc && (
-                  <div className="rounded-lg p-2 mb-2" style={{ background:"oklch(4% 0 0)", border:"1px solid oklch(15% 0 0)" }}>
+                  <div className="rounded-lg p-2 mb-2" style={{ background: "oklch(4% 0 0)", border: "1px solid oklch(15% 0 0)" }}>
                     <div className="text-[9px] text-zinc-600 uppercase mb-1">PoC</div>
                     <code className="text-green-400 text-[10px] break-all whitespace-pre-wrap">{s.poc}</code>
                   </div>
@@ -1041,13 +1039,13 @@ function ChainDetail({ chain }: { chain: Chain }) {
 
 function NodeDetail({ node, g }: { node: GNode; g: Graph }) {
   const chain = g.chains?.find(c => c.steps?.some(s => s.findingId === node.findingId));
-  const c = RISK_C[node.severity||""] || "#94a3b8";
+  const c = RISK_C[node.severity || ""] || "#94a3b8";
   return (
     <div className="p-5">
       <div className="mb-4">
         <div className="flex items-center gap-2 mb-2">
           {node.type === "attacker" && <Crosshair className="w-4 h-4 text-red-400" />}
-          {node.type === "vulnerability" && <AlertTriangle style={{ color:c }} className="w-4 h-4" />}
+          {node.type === "vulnerability" && <AlertTriangle style={{ color: c }} className="w-4 h-4" />}
           {node.type === "target" && <Target className="w-4 h-4 text-violet-400" />}
           <span className="text-[10px] text-muted-foreground uppercase tracking-wide font-semibold">
             {node.type === "attacker" ? "Threat Actor" : node.type === "vulnerability" ? "Vulnerability" : "Compromised Asset"}
@@ -1056,13 +1054,13 @@ function NodeDetail({ node, g }: { node: GNode; g: Graph }) {
         {node.severity && <RiskBadge level={node.severity} />}
         <h2 className="text-base font-bold text-white mt-2">{node.label}</h2>
         {node.endpoint && <div className="font-mono text-xs text-zinc-400 mt-1">{node.endpoint}</div>}
-        {node.technique && <div style={{ color:c }} className="text-xs font-mono mt-1 opacity-80">{node.technique}</div>}
+        {node.technique && <div style={{ color: c }} className="text-xs font-mono mt-1 opacity-80">{node.technique}</div>}
         {node.description && <p className="text-zinc-400 text-xs mt-2">{node.description}</p>}
       </div>
       {chain && (
         <div className="border-t border-border pt-4">
           <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-2">Part of Attack Chain</div>
-          <div className="rounded-xl border border-border p-3" style={{ background:"oklch(8% 0 0)" }}>
+          <div className="rounded-xl border border-border p-3" style={{ background: "oklch(8% 0 0)" }}>
             <RiskBadge level={chain.risk} />
             <div className="text-white text-xs font-semibold mt-2">{chain.title}</div>
             <div className="text-muted-foreground text-[11px] mt-1">{chain.steps?.length} exploitation steps</div>

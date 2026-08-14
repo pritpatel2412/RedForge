@@ -6,9 +6,11 @@ import { requireAuth } from "../lib/auth.js";
 
 const router = Router();
 
-const NIM_BASE  = "https://integrate.api.nvidia.com/v1";
-const PRIMARY_MODEL = process.env.NVIDIA_MODEL || "meta/llama-3.1-70b-instruct";
-const FALLBACK_MODEL = process.env.NVIDIA_FALLBACK_MODEL || "meta/llama-3.1-8b-instruct";
+const NIM_BASE = "https://integrate.api.nvidia.com/v1";
+const GROQ_BASE = "https://api.groq.com/openai/v1";
+
+const PRIMARY_MODEL = process.env.GROQ_CHAT_MODEL || "llama-3.3-70b-versatile";
+const FALLBACK_MODEL = process.env.NVIDIA_MODEL || "meta/llama-3.1-8b-instruct";
 
 // ── In-memory prompt cache to reduce per-message DB overhead ─────────────────
 const PROMPT_CACHE = new Map<string, { prompt: string; expires: number }>();
@@ -32,10 +34,10 @@ async function buildSystemPrompt(workspace: any): Promise<string> {
       .where(inArray(findingsTable.projectId, projectIds))
       .orderBy(desc(findingsTable.createdAt))
       .limit(200);
-      
-    allFindings = findings.map((f: any) => ({ 
-      ...f, 
-      projectName: projectMap[f.projectId] || "Unknown" 
+
+    allFindings = findings.map((f: any) => ({
+      ...f,
+      projectName: projectMap[f.projectId] || "Unknown"
     }));
 
     const scans = await db.select()
@@ -43,23 +45,23 @@ async function buildSystemPrompt(workspace: any): Promise<string> {
       .where(inArray(scansTable.projectId, projectIds))
       .orderBy(desc(scansTable.createdAt))
       .limit(20);
-      
+
     recentScans = scans;
   }
 
   const criticalFindings = allFindings.filter((f: any) => f.severity === "CRITICAL");
-  const highFindings     = allFindings.filter((f: any) => f.severity === "HIGH");
-  const mediumFindings   = allFindings.filter((f: any) => f.severity === "MEDIUM");
-  const lowFindings      = allFindings.filter((f: any) => f.severity === "LOW");
-  const openFindings     = allFindings.filter((f: any) => f.status === "OPEN" || f.status === "IN_PROGRESS");
-  const fixedFindings    = allFindings.filter((f: any) => f.status === "FIXED");
-  const fixRate          = allFindings.length > 0 ? Math.round((fixedFindings.length / allFindings.length) * 100) : 0;
+  const highFindings = allFindings.filter((f: any) => f.severity === "HIGH");
+  const mediumFindings = allFindings.filter((f: any) => f.severity === "MEDIUM");
+  const lowFindings = allFindings.filter((f: any) => f.severity === "LOW");
+  const openFindings = allFindings.filter((f: any) => f.status === "OPEN" || f.status === "IN_PROGRESS");
+  const fixedFindings = allFindings.filter((f: any) => f.status === "FIXED");
+  const fixRate = allFindings.length > 0 ? Math.round((fixedFindings.length / allFindings.length) * 100) : 0;
 
   const riskLevel = criticalFindings.length > 0 ? "🔴 CRITICAL RISK"
-    : highFindings.length > 3   ? "🟠 HIGH RISK"
-    : mediumFindings.length > 5 ? "🟡 MEDIUM RISK"
-    : allFindings.length > 0    ? "🟢 LOW RISK"
-    : "⚪ NOT ASSESSED";
+    : highFindings.length > 3 ? "🟠 HIGH RISK"
+      : mediumFindings.length > 5 ? "🟡 MEDIUM RISK"
+        : allFindings.length > 0 ? "🟢 LOW RISK"
+          : "⚪ NOT ASSESSED";
 
   const findingsContext = allFindings.slice(0, 40).map((f: any) =>
     `• [${f.severity}] ${f.title}\n  Endpoint: ${f.endpoint}\n  CVSS: ${f.cvss || "N/A"} | OWASP: ${f.owasp || "N/A"} | CWE: ${f.cwe || "N/A"}\n  Status: ${f.status} | Project: ${f.projectName}\n  Description: ${(f.description || "").slice(0, 200)}`
@@ -417,7 +419,7 @@ router.post("/followups", requireAuth, async (req, res) => {
         }
       }
     }
-  } catch {}
+  } catch { }
   res.json({ suggestions: [] });
 });
 
@@ -446,9 +448,9 @@ router.post("/", requireAuth, async (req, res) => {
     systemPrompt = cached.prompt;
   } else {
     systemPrompt = await buildSystemPrompt(workspace);
-    PROMPT_CACHE.set(workspace.id, { 
-      prompt: systemPrompt, 
-      expires: Date.now() + PROMPT_TTL 
+    PROMPT_CACHE.set(workspace.id, {
+      prompt: systemPrompt,
+      expires: Date.now() + PROMPT_TTL
     });
   }
 
@@ -467,12 +469,24 @@ router.post("/", requireAuth, async (req, res) => {
   const fallbackModel = FALLBACK_MODEL;
 
   const runStream = async (model: string, isFallback: boolean = false) => {
+    // Robust provider detection: prioritize Groq if the key is present and model matches Groq patterns or explicitly requested
+    const isGroq = !!process.env.GROQ_API_KEY && (
+      model.includes("versatile") || 
+      model.includes("instant") || 
+      model.includes("scout") ||
+      !nimKey
+    );
+    const apiKey = isGroq ? process.env.GROQ_API_KEY : nimKey;
+    const baseUrl = isGroq ? GROQ_BASE : NIM_BASE;
+
+    if (!apiKey) throw new Error(`${isGroq ? "Groq" : "NVIDIA"} API key missing`);
+
     const isGlm = model.includes("glm-5");
-    const nimResp = await fetch(`${NIM_BASE}/chat/completions`, {
+    const nimResp = await fetch(`${baseUrl}/chat/completions`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${nimKey}`,
+        "Authorization": `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
         model: model,
@@ -483,7 +497,7 @@ router.post("/", requireAuth, async (req, res) => {
         ],
         ...(isGlm ? { "extra_body": { "reasoning": true } } : {})
       }),
-      signal: AbortSignal.timeout(60000), // 60 seconds (better fit for Vercel/Replit)
+      signal: AbortSignal.timeout(isGroq ? 40000 : 60000),
     });
 
     if (!nimResp.ok) {
@@ -501,7 +515,7 @@ router.post("/", requireAuth, async (req, res) => {
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
-        
+
         streamBuffer += decoder.decode(value, { stream: true });
         const lines = streamBuffer.split("\n");
         streamBuffer = lines.pop() || "";
@@ -509,7 +523,7 @@ router.post("/", requireAuth, async (req, res) => {
         for (const line of lines) {
           const trimmed = line.trim();
           if (!trimmed || !trimmed.startsWith("data: ")) continue;
-          
+
           const rawData = trimmed.slice(6).trim();
           if (rawData === "[DONE]") return true;
 

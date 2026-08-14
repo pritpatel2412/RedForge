@@ -150,7 +150,7 @@ const PLANS = [
       { text: "Unlimited scans", included: true },
       { text: "ACTIVE mode probing", included: true },
       { text: "Autonomous pentest agent", included: true },
-      { text: "AI deep analysis (NVIDIA NIM)", included: true },
+      { text: "AI deep analysis (Groq)", included: true },
       { text: "AI fix generation (PR-ready diffs)", included: true },
       { text: "GitHub SAST integration (repo checks)", included: true },
       { text: "Slack notifications", included: true },

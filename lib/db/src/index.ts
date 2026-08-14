@@ -17,7 +17,7 @@ export const pool = new Pool({
   connectionString,
   max: 20,                    // Max connections in pool
   idleTimeoutMillis: 30000,     // Close idle connections after 30s
-  connectionTimeoutMillis: 15000, // Give cloud DB a bit more time
+  connectionTimeoutMillis: 30000, // Give cloud DB significantly more time for cold starts
   keepAlive: true,
 });
 export const db = drizzle(pool, { schema });

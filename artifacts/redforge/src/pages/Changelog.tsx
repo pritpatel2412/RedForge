@@ -48,7 +48,7 @@ const UPDATES = [
       "Auth session cookies now set with Secure: true on HTTPS environments, fixing silent drop on Vercel",
       "Resolved 404 errors on /channel and /status routes — all traffic now routed through Express.js SPA handler",
       "Eliminated Vercel TypeScript build errors by refactoring api/index.ts to import only built dist artifacts",
-      "Fixed NVIDIA NIM 404 — invalid model zhipuai/glm-5-plus replaced with confirmed NIM catalog models"
+      "Fixed Groq 404 — invalid model meta-llama/llama-4-scout replaced with confirmed Groq catalog models"
     ]
   },
   {
@@ -69,11 +69,11 @@ const UPDATES = [
     version: "v2.0.0",
     date: "April 10, 2026",
     type: "major",
-    title: "AI Engine Rewrite — NVIDIA NIM Integration",
+    title: "AI Engine Rewrite — Groq Integration",
     icon: Link2,
     changes: [
       "Rebuilt the core scanning engine with a modular, phase-based architecture",
-      "Integrated NVIDIA NIM API for AI-powered deep analysis phase",
+      "Integrated Groq API for AI-powered deep analysis phase",
       "Auto-generation of fix patches and exploit PoC code for all findings",
       "Real-time SSE log streaming to Scan detail view — watch every probe live",
       "Completely redesigned dark-mode professional interface",

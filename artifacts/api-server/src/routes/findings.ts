@@ -82,18 +82,18 @@ router.get("/", requireAuth, async (req, res) => {
 
     const conditions = [eq(projectsTable.workspaceId, workspace.id)];
     if (projectId) conditions.push(eq(findingsTable.projectId, projectId as string));
-    if (severity)  conditions.push(eq(findingsTable.severity, severity as string));
-    if (status)    conditions.push(eq(findingsTable.status, status as string));
+    if (severity) conditions.push(eq(findingsTable.severity, severity as string));
+    if (status) conditions.push(eq(findingsTable.status, status as string));
 
     const results = await db.select({
       finding: findingsTable,
       projectName: projectsTable.name,
     })
-    .from(findingsTable)
-    .innerJoin(projectsTable, eq(findingsTable.projectId, projectsTable.id))
-    .where(and(...conditions))
-    .orderBy(desc(findingsTable.createdAt))
-    .limit(100);
+      .from(findingsTable)
+      .innerJoin(projectsTable, eq(findingsTable.projectId, projectsTable.id))
+      .where(and(...conditions))
+      .orderBy(desc(findingsTable.createdAt))
+      .limit(100);
 
     res.json(results.map(r => ({
       ...r.finding,

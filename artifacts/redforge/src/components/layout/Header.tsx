@@ -8,17 +8,17 @@ import type { User } from "@workspace/api-client-react";
 
 // ── Search index ──────────────────────────────────────────────────────────────
 const SEARCH_ITEMS = [
-  { label: "Dashboard",         path: "/dashboard",         icon: LayoutDashboard, description: "Overview & stats" },
-  { label: "Projects",          path: "/projects",          icon: FolderOpen,      description: "Manage your projects" },
-  { label: "New Project",       path: "/projects/new",      icon: FolderOpen,      description: "Create a new project" },
-  { label: "Scans",             path: "/scans",             icon: Scan,            description: "All security scans" },
-  { label: "Findings",          path: "/findings",          icon: ShieldAlert,     description: "Vulnerabilities found" },
-  { label: "Analytics",         path: "/analytics",         icon: BarChart2,       description: "Trends & insights" },
-  { label: "Reports",           path: "/reports",           icon: FileText,        description: "Export reports" },
-  { label: "AI Chat",           path: "/chat",              icon: MessageSquare,   description: "Chat with FORGE-1" },
-  { label: "Settings",          path: "/settings",          icon: Settings,        description: "Workspace settings" },
-  { label: "API Keys",          path: "/settings/api-keys", icon: Key,             description: "Manage API keys" },
-  { label: "Billing",           path: "/settings/billing",  icon: CreditCard,      description: "Plans & billing" },
+  { label: "Dashboard", path: "/dashboard", icon: LayoutDashboard, description: "Overview & stats" },
+  { label: "Projects", path: "/projects", icon: FolderOpen, description: "Manage your projects" },
+  { label: "New Project", path: "/projects/new", icon: FolderOpen, description: "Create a new project" },
+  { label: "Scans", path: "/scans", icon: Scan, description: "All security scans" },
+  { label: "Findings", path: "/findings", icon: ShieldAlert, description: "Vulnerabilities found" },
+  { label: "Analytics", path: "/analytics", icon: BarChart2, description: "Trends & insights" },
+  { label: "Reports", path: "/reports", icon: FileText, description: "Export reports" },
+  { label: "AI Chat", path: "/chat", icon: MessageSquare, description: "Chat with FORGE-1" },
+  { label: "Settings", path: "/settings", icon: Settings, description: "Workspace settings" },
+  { label: "API Keys", path: "/settings/api-keys", icon: Key, description: "Manage API keys" },
+  { label: "Billing", path: "/settings/billing", icon: CreditCard, description: "Plans & billing" },
 ];
 
 // ── Real notifications hook ───────────────────────────────────────────────────
@@ -27,7 +27,7 @@ const NOTIF_KEY = "/api/notifications";
 function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
   const m = Math.floor(diff / 60000);
-  if (m < 1)  return "Just now";
+  if (m < 1) return "Just now";
   if (m < 60) return `${m}m ago`;
   const h = Math.floor(m / 60);
   if (h < 24) return `${h}h ago`;
@@ -45,7 +45,7 @@ function useNotifications() {
       return r.json();
     },
     refetchInterval: 30_000,
-    staleTime:       15_000,
+    staleTime: 15_000,
   });
 
   const markAllMutation = useMutation({
@@ -66,14 +66,23 @@ function useNotifications() {
     onSettled: () => qc.invalidateQueries({ queryKey: [NOTIF_KEY] }),
   });
 
+  const markReadMutation = useMutation({
+    mutationFn: (id: string) => fetch(`${NOTIF_KEY}/${id}/read`, { method: "PATCH", credentials: "include" }),
+    onMutate: async (id) => {
+      await qc.cancelQueries({ queryKey: [NOTIF_KEY] });
+      qc.setQueryData([NOTIF_KEY], (old: any[]) => (old || []).map((n: any) => n.id === id ? { ...n, read: true } : n));
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: [NOTIF_KEY] }),
+  });
+
   const unreadCount = (items as any[]).filter((n: any) => !n.read).length;
 
   return {
     items,
     unreadCount,
     markAllRead: () => markAllMutation.mutate(),
-    markRead:    (_id: string) => { /* individual read handled on panel open (markAllRead) */ },
-    dismiss:     (id: string)  => dismissMutation.mutate(id),
+    markRead: (id: string) => markReadMutation.mutate(id),
+    dismiss: (id: string) => dismissMutation.mutate(id),
   };
 }
 
@@ -195,14 +204,14 @@ function GithubStarButton() {
           />
         )}
       </AnimatePresence>
-      
+
       {/* The border line itself */}
-      <div 
+      <div
         style={{
           position: "absolute",
           inset: 0,
           borderRadius: 8,
-          background: hovered 
+          background: hovered
             ? "linear-gradient(135deg, hsl(348,83%,55%), hsl(20,100%,55%), hsl(280,70%,60%))"
             : "oklch(20% 0 0)",
           zIndex: 1,
@@ -214,7 +223,7 @@ function GithubStarButton() {
       <motion.div
         whileTap={{ scale: 0.96 }}
         className="relative px-3 h-[28px] rounded-[7px] flex items-center gap-2 text-xs font-semibold overflow-hidden z-10"
-        style={{ 
+        style={{
           background: "oklch(8% 0 0)",
           color: hovered ? "white" : "oklch(70% 0 0)",
           transition: "color 0.3s ease"
@@ -254,9 +263,9 @@ export function Header({ user }: { user?: User }) {
   // Filtered search results
   const results = query.trim()
     ? SEARCH_ITEMS.filter(it =>
-        it.label.toLowerCase().includes(query.toLowerCase()) ||
-        it.description.toLowerCase().includes(query.toLowerCase())
-      )
+      it.label.toLowerCase().includes(query.toLowerCase()) ||
+      it.description.toLowerCase().includes(query.toLowerCase())
+    )
     : SEARCH_ITEMS;
 
   // ⌘K / Ctrl+K shortcut
@@ -283,7 +292,7 @@ export function Header({ user }: { user?: User }) {
   // Keyboard nav inside results
   const handleSearchKey = (e: React.KeyboardEvent) => {
     if (e.key === "ArrowDown") { e.preventDefault(); setSelectedIdx(i => Math.min(i + 1, results.length - 1)); }
-    if (e.key === "ArrowUp")   { e.preventDefault(); setSelectedIdx(i => Math.max(i - 1, 0)); }
+    if (e.key === "ArrowUp") { e.preventDefault(); setSelectedIdx(i => Math.max(i - 1, 0)); }
     if (e.key === "Enter" && results[selectedIdx]) {
       setLocation(results[selectedIdx].path);
       setSearchOpen(false);
@@ -329,7 +338,7 @@ export function Header({ user }: { user?: User }) {
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              onClick={() => { setNotifOpen(v => !v); if (!notifOpen) markAllRead(); }}
+              onClick={() => setNotifOpen(v => !v)}
               className="relative w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-white hover:bg-white/6 transition-all"
             >
               <Bell className="w-4 h-4" />
@@ -352,9 +361,13 @@ export function Header({ user }: { user?: User }) {
                   style={{ background: "oklch(8% 0 0)" }}
                 >
                   {/* Header */}
-                  <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-                    <span className="text-sm font-semibold text-white">Notifications</span>
-                    <button onClick={markAllRead} className="text-[10px] text-primary hover:text-primary/80 font-medium flex items-center gap-1">
+                  <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-white/2">
+                    <span className="text-xs font-bold text-white uppercase tracking-wider opacity-80">Notifications</span>
+                    <button 
+                      onClick={() => unreadCount > 0 && markAllRead()} 
+                      disabled={unreadCount === 0}
+                      className="text-[10px] text-primary hover:text-primary/80 disabled:text-zinc-600 disabled:cursor-not-allowed font-medium flex items-center gap-1 transition-all"
+                    >
                       <Check className="w-3 h-3" /> Mark all read
                     </button>
                   </div>
@@ -370,14 +383,16 @@ export function Header({ user }: { user?: User }) {
                       <div
                         key={n.id}
                         className={`flex gap-3 px-4 py-3 border-b border-border/50 last:border-0 hover:bg-white/3 transition-colors cursor-pointer ${!n.read ? "bg-primary/5" : ""}`}
-                        onClick={() => { if (n.link) setLocation(n.link); }}
+                        onClick={() => { 
+                          if (!n.read) markRead(n.id);
+                          if (n.link) setLocation(n.link); 
+                        }}
                       >
                         {/* Color dot */}
-                        <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${
-                          n.type === "success" ? "bg-emerald-400" :
-                          n.type === "warning" ? "bg-amber-400"  :
-                          n.type === "error"   ? "bg-red-400"    : "bg-blue-400"
-                        }`} />
+                        <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${n.type === "success" ? "bg-emerald-400" :
+                            n.type === "warning" ? "bg-amber-400" :
+                              n.type === "error" ? "bg-red-400" : "bg-blue-400"
+                          }`} />
                         <div className="flex-1 min-w-0">
                           <p className="text-xs font-semibold text-white">{n.title}</p>
                           <p className="text-[11px] text-zinc-500 mt-0.5 leading-relaxed">{n.body}</p>

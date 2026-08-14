@@ -43,7 +43,7 @@
 
   --color-background: oklch(5% 0 0);
   --color-foreground: oklch(98% 0 0);
-  
+
   --color-card: oklch(8% 0 0);
   --color-card-foreground: oklch(98% 0 0);
   --color-card-border: oklch(14% 0 0);
@@ -54,7 +54,7 @@
 
   --color-primary: hsl(348, 83%, 50%);
   --color-primary-foreground: hsl(0, 0%, 100%);
-  
+
   --color-secondary: oklch(12% 0 0);
   --color-secondary-foreground: oklch(98% 0 0);
 
@@ -86,7 +86,7 @@
   * {
     @apply border-border;
   }
-  
+
   html {
     @apply bg-background text-foreground font-sans antialiased;
     font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
@@ -97,7 +97,12 @@
     @apply bg-background text-foreground;
   }
 
-  h1, h2, h3, h4, h5, h6 {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     @apply tracking-tight font-semibold;
   }
 
@@ -109,34 +114,51 @@
 
 /* Shimmer skeleton */
 @utility skeleton {
-  background: linear-gradient(
-    90deg,
-    oklch(10% 0 0) 25%,
-    oklch(13% 0 0) 50%,
-    oklch(10% 0 0) 75%
-  );
+  background: linear-gradient(90deg,
+      oklch(10% 0 0) 25%,
+      oklch(13% 0 0) 50%,
+      oklch(10% 0 0) 75%);
   background-size: 200% 100%;
   animation: skeleton-shimmer 1.4s ease-in-out infinite;
 }
 
 @keyframes skeleton-shimmer {
-  0%   { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+  0% {
+    background-position: 200% 0;
+  }
+
+  100% {
+    background-position: -200% 0;
+  }
 }
 
 /* Scrollbar */
 @utility scrollbar-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;
-  &::-webkit-scrollbar { display: none; }
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 @utility scrollbar-thin {
   scrollbar-width: thin;
   scrollbar-color: oklch(18% 0 0) transparent;
-  &::-webkit-scrollbar { width: 4px; height: 4px; }
-  &::-webkit-scrollbar-track { background: transparent; }
-  &::-webkit-scrollbar-thumb { background: oklch(18% 0 0); border-radius: 9999px; }
+
+  &::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: oklch(18% 0 0);
+    border-radius: 9999px;
+  }
 }
 
 /* Dot grid background pattern */
@@ -202,7 +224,10 @@
   @apply max-h-[360px] overflow-y-auto p-2;
   scrollbar-width: none;
 }
-[cmdk-list]::-webkit-scrollbar { display: none; }
+
+[cmdk-list]::-webkit-scrollbar {
+  display: none;
+}
 
 [cmdk-empty] {
   @apply py-6 text-center text-sm text-muted-foreground;
@@ -221,8 +246,15 @@
 }
 
 @keyframes cmdk-fade-in {
-  from { opacity: 0; transform: scale(0.96) translateY(-4px); }
-  to { opacity: 1; transform: scale(1) translateY(0); }
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(-4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
 }
 
 /* Live pulse blue */
@@ -232,9 +264,20 @@
 }
 
 @keyframes pulse-blue {
-  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7); }
-  70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(59, 130, 246, 0); }
-  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7);
+  }
+
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 6px rgba(59, 130, 246, 0);
+  }
+
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+  }
 }
 
 /* Red pulse for critical */
@@ -243,31 +286,46 @@
 }
 
 @keyframes pulse-red {
-  0%, 100% { box-shadow: 0 0 0 0 hsl(348 83% 50% / 0.5); }
-  50% { box-shadow: 0 0 0 8px hsl(348 83% 50% / 0); }
+
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 hsl(348 83% 50% / 0.5);
+  }
+
+  50% {
+    box-shadow: 0 0 0 8px hsl(348 83% 50% / 0);
+  }
 }
 
 /* Shimmer animation */
 @keyframes shimmer {
-  from { background-position: -200% center; }
-  to { background-position: 200% center; }
+  from {
+    background-position: -200% center;
+  }
+
+  to {
+    background-position: 200% center;
+  }
 }
 
 .shimmer {
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    oklch(25% 0 0 / 0.5) 50%,
-    transparent 100%
-  );
+  background: linear-gradient(90deg,
+      transparent 0%,
+      oklch(25% 0 0 / 0.5) 50%,
+      transparent 100%);
   background-size: 200% 100%;
   animation: shimmer 2s infinite;
 }
 
 /* Scan line animation for terminals */
 @keyframes scan-line {
-  0% { transform: translateY(-100%); }
-  100% { transform: translateY(100vh); }
+  0% {
+    transform: translateY(-100%);
+  }
+
+  100% {
+    transform: translateY(100vh);
+  }
 }
 
 .scan-line {
@@ -276,8 +334,15 @@
 
 /* Floating animation */
 @keyframes float {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-12px); }
+
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+
+  50% {
+    transform: translateY(-12px);
+  }
 }
 
 .animate-float {
@@ -297,12 +362,13 @@
 @utility border-gradient {
   border: 1px solid transparent;
   background: linear-gradient(oklch(8% 0 0), oklch(8% 0 0)) padding-box,
-              linear-gradient(135deg, hsl(348 83% 50% / 0.4), transparent 50%, oklch(20% 0 0)) border-box;
+    linear-gradient(135deg, hsl(348 83% 50% / 0.4), transparent 50%, oklch(20% 0 0)) border-box;
 }
 
 /* Noise texture overlay */
 @utility noise {
   position: relative;
+
   &::after {
     content: '';
     position: absolute;
@@ -322,8 +388,15 @@
 
 /* Typing cursor */
 @keyframes cursor-blink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0; }
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0;
+  }
 }
 
 .cursor-blink {
@@ -332,8 +405,15 @@
 
 /* Fade slide in */
 @keyframes fade-slide-up {
-  from { opacity: 0; transform: translateY(16px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .animate-fade-slide-up {
@@ -341,11 +421,25 @@
 }
 
 /* Stagger children */
-.stagger > *:nth-child(1) { animation-delay: 0ms; }
-.stagger > *:nth-child(2) { animation-delay: 80ms; }
-.stagger > *:nth-child(3) { animation-delay: 160ms; }
-.stagger > *:nth-child(4) { animation-delay: 240ms; }
-.stagger > *:nth-child(5) { animation-delay: 320ms; }
+.stagger>*:nth-child(1) {
+  animation-delay: 0ms;
+}
+
+.stagger>*:nth-child(2) {
+  animation-delay: 80ms;
+}
+
+.stagger>*:nth-child(3) {
+  animation-delay: 160ms;
+}
+
+.stagger>*:nth-child(4) {
+  animation-delay: 240ms;
+}
+
+.stagger>*:nth-child(5) {
+  animation-delay: 320ms;
+}
 
 /* ─── React Flow — Dark Theme Override ───────────────────────────────────── */
 
@@ -363,6 +457,7 @@
 .react-flow__pane {
   cursor: grab;
 }
+
 .react-flow__pane:active {
   cursor: grabbing;
 }
@@ -379,22 +474,24 @@
 }
 
 /* Selected node ring: violet glow instead of blue */
-.react-flow__node.selected > * {
+.react-flow__node.selected>* {
   outline: 2px solid rgba(239, 68, 68, 0.85) !important;
   outline-offset: 2px;
   border-radius: 16px !important;
-  box-shadow: 0 0 20px rgba(239,68,68,0.2) !important;
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.2) !important;
 }
 
 /* Edges — red attack path lines */
 .react-flow__edge-path {
   stroke: #ef4444;
-  filter: drop-shadow(0 0 4px rgba(239,68,68,0.4));
+  filter: drop-shadow(0 0 4px rgba(239, 68, 68, 0.4));
 }
 
 /* Animated dash travel for attacker -> vuln edges */
 @keyframes redforge-dash {
-  to { stroke-dashoffset: -36; }
+  to {
+    stroke-dashoffset: -36;
+  }
 }
 
 /* Edge label text */
@@ -508,4 +605,69 @@
 
 .react-flow__handle:hover {
   background: rgba(139, 92, 246, 0.7) !important;
+}
+
+/* Glitch Effect */
+.glitch {
+  position: relative;
+  display: inline-block;
+}
+
+.glitch::before,
+.glitch::after {
+  content: attr(data-text);
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  clip: rect(0, 0, 0, 0);
+}
+
+.glitch::after {
+  left: 2px;
+  text-shadow: var(--after-shadow);
+  clip: rect(0, 900px, 0, 0);
+  animation: glitch-anim-2 var(--after-duration) infinite linear alternate-reverse;
+}
+
+.glitch::before {
+  left: -2px;
+  text-shadow: var(--before-shadow);
+  clip: rect(0, 900px, 0, 0);
+  animation: glitch-anim-1 var(--before-duration) infinite linear alternate-reverse;
+}
+
+.glitch.enable-on-hover:not(:hover)::before,
+.glitch.enable-on-hover:not(:hover)::after {
+  animation: none;
+  clip: rect(0, 0, 0, 0);
+}
+
+@keyframes glitch-anim-1 {
+  0% { clip: rect(10px, 9999px, 50px, 0); }
+  20% { clip: rect(30px, 9999px, 20px, 0); }
+  40% { clip: rect(60px, 9999px, 80px, 0); }
+  60% { clip: rect(10px, 9999px, 40px, 0); }
+  80% { clip: rect(90px, 9999px, 10px, 0); }
+  100% { clip: rect(20px, 9999px, 70px, 0); }
+}
+
+@keyframes glitch-anim-2 {
+  0% { clip: rect(70px, 9999px, 10px, 0); }
+  20% { clip: rect(10px, 9999px, 80px, 0); }
+  40% { clip: rect(40px, 9999px, 60px, 0); }
+  60% { clip: rect(80px, 9999px, 20px, 0); }
+  80% { clip: rect(20px, 9999px, 90px, 0); }
+  100% { clip: rect(50px, 9999px, 30px, 0); }
+}
+
+/* Typewriter Cursor */
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+.animate-blink {
+  animation: blink 0.8s step-end infinite;
 }

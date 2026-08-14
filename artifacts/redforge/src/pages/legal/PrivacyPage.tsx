@@ -66,7 +66,7 @@ export default function PrivacyPage() {
             <p>We may share your data with trusted service providers who assist in operating our Service:</p>
             <ul className="list-disc list-inside space-y-1 text-zinc-400 pl-2">
               <li><strong className="text-zinc-300">Stripe</strong> — payment processing</li>
-              <li><strong className="text-zinc-300">NVIDIA NIM / AI Providers</strong> — AI vulnerability analysis (scan data only, anonymized where possible)</li>
+              <li><strong className="text-zinc-300">Groq / AI Providers</strong> — AI vulnerability analysis (scan data only, anonymized where possible)</li>
               <li><strong className="text-zinc-300">Resend</strong> — transactional email delivery</li>
               <li><strong className="text-zinc-300">Infrastructure providers</strong> — cloud hosting and database services</li>
             </ul>

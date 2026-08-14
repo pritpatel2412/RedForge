@@ -13,7 +13,7 @@ const PRO_FEATURES = [
   "Unlimited scans",
   "ACTIVE mode probing (SQLi/rate-limit/business logic)",
   "Autonomous pentest agent (adaptive follow-up probes)",
-  "AI deep analysis (NVIDIA NIM)",
+  "AI deep analysis (Groq)",
   "AI fix generation (PR-ready diffs + PoC)",
   "GitHub SAST integration (repo checks)",
   "Slack notifications",
@@ -43,7 +43,7 @@ export default function Billing() {
   const queryClient = useQueryClient();
   const [couponCode, setCouponCode] = useState("");
   const [couponLoading, setCouponLoading] = useState(false);
-  
+
   const { mutate: checkout, isPending: isCheckingOut } = useCreateCheckout({
     mutation: {
       onSuccess: (data) => window.location.href = data.url
@@ -133,11 +133,10 @@ export default function Billing() {
         {/* Current plan banner */}
         <motion.div
           variants={cardVariants}
-          className={`relative overflow-hidden rounded-2xl p-6 md:p-8 border ${
-            isPro
+          className={`relative overflow-hidden rounded-2xl p-6 md:p-8 border ${isPro
               ? "border-primary/25 shadow-[0_0_30px_hsl(348_83%_50%_/_0.08)]"
               : "border-border"
-          }`}
+            }`}
           style={{ background: isPro ? "linear-gradient(135deg, hsl(348 83% 50% / 0.08), oklch(8% 0 0))" : "oklch(8% 0 0)" }}
         >
           {isPro && (
@@ -195,11 +194,10 @@ export default function Billing() {
           {/* Pro */}
           <motion.div
             variants={cardVariants}
-            className={`rounded-2xl border p-6 relative overflow-hidden ${
-              isPro && !isEnterprise
+            className={`rounded-2xl border p-6 relative overflow-hidden ${isPro && !isEnterprise
                 ? "border-primary/30 shadow-[0_0_20px_hsl(348_83%_50%_/_0.08)]"
                 : "border-border"
-            }`}
+              }`}
             style={{ background: "oklch(8% 0 0)" }}
           >
             {isPro && !isEnterprise && (
@@ -241,9 +239,8 @@ export default function Billing() {
           {/* Enterprise */}
           <motion.div
             variants={cardVariants}
-            className={`rounded-2xl border p-6 relative overflow-hidden ${
-              isEnterprise ? "border-violet-500/30" : "border-border"
-            }`}
+            className={`rounded-2xl border p-6 relative overflow-hidden ${isEnterprise ? "border-violet-500/30" : "border-border"
+              }`}
             style={{ background: "oklch(8% 0 0)" }}
           >
             <div className="flex items-center justify-between mb-1">
